@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GLB Casino</title>
+    <style>
+        /* Style global */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: #fff;
+            height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Barre supérieure */
+        .top-bar {
+            background-color: #1c1c1c;
+            height: 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            position: relative;
+        }
+        .title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #fff;
+        }
+        .menu-btn {
+            font-size: 26px;
+            cursor: pointer;
+            color: #fff;
+        }
+        .solde-box {
+            display: flex;
+            align-items: center;
+            background-color: #222;
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 2px solid #28a745;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        .plus-icon {
+            color: #28a745;
+            font-size: 22px;
+            font-weight: bold;
+            margin-right: 8px;
+            cursor: pointer;
+        }
+        #soldeSats {
+            font-size: 16px;
+        }
+
+        /* Menu latéral */
+        .sidebar {
+            width: 250px;
+            height: 100%;
+            background-color: #1c1c1c;
+            position: fixed;
+            top: 0;
+            left: -250px;
+            transition: 0.3s ease;
+            padding-top: 80px;
+            z-index: 10;
+        }
+        .sidebar.active {
+            left: 0;
+        }
+        .sidebar-content a {
+            display: block;
+            padding: 15px 30px;
+            color: #fff;
+            text-decoration: none;
+            font-size: 18px;
+            transition: background 0.3s;
+        }
+        .sidebar-content a:hover {
+            background-color: #333;
+        }
+
+        /* Overlay lors de l'ouverture du menu */
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            z-index: 5;
+            display: none;
+        }
+        #overlay.active {
+            display: block;
+        }
+
+        /* Contenu principal */
+        .main-content {
+            padding: 20px;
+            text-align: center;
+            font-size: 20px;
+        }
+
+        /* Grille des jeux */
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .game-card {
+            background-color: #222;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .game-card:hover {
+            transform: scale(1.05);
+        }
+        .game-card img {
+            width: 100%;
+            border-radius: 10px;
+        }
+        .game-card h3 {
+            font-size: 16px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Barre supérieure -->
+    <header class="top-bar">
+        <div class="menu-btn" id="openMenu">&#9776;</div>
+        <h1 class="title">GLB</h1>
+        <div class="solde-box">
+            <span class="plus-icon" id="addSats">+</span>
+            <span id="soldeSats">0 sats</span>
+        </div>
+    </header>
+
+    <!-- Menu latéral -->
+    <nav id="sidebar" class="sidebar">
+        <div class="sidebar-content">
+            <a href="#">Accueil</a>
+            <a href="#">Profil</a>
+            <a href="#">Transactions</a>
+            <a href="#">Paramètres</a>
+        </div>
+    </nav>
+    <div id="overlay"></div>
+
+    <!-- Contenu principal -->
+    <main class="main-content">
+        <p>Bienvenue sur <strong>GLB</strong> - Votre hub de jeux de casino.</p>
+
+        <!-- Grille des jeux -->
+        <div class="game-grid">
+            <div class="game-card" onclick="window.open('https://jonnhy2255.github.io/GLB/under-and-over-7.html', '_blank')">
+                <img src="https://jonnhy2255.github.io/GLB/under-and-over-7.jpg" alt="Jeu 1">
+                <h3>Under and Over 7</h3>
+            </div>
+            <div class="game-card" onclick="window.open('https://jonnhy2255.github.io/GLB/red-or-black.html', '_blank')">
+                <img src="https://jonnhy2255.github.io/GLB/red-or-black.jpg" alt="Jeu 2">
+                <h3>Red or Black</h3>
+            </div>
+            <div class="game-card" onclick="window.open('https://jonnhy2255.github.io/GLB/gold-or-bomb.html', '_blank')">
+                <img src="https://jonnhy2255.github.io/GLB/gold-or-bomb.jpg" alt="Jeu 3">
+                <h3>Gold or Bomb</h3>
+            </div>
+            <div class="game-card" onclick="window.open('https://jonnhy2255.github.io/GLB/pile-ou-face.html', '_blank')">
+                <img src="https://jonnhy2255.github.io/GLB/pile-ou-face.jpg" alt="Jeu 4">
+                <h3>Pile ou Face</h3>
+            </div>
+            <div class="game-card" onclick="window.open('https://jonnhy2255.github.io/GLB/crash.html', '_blank')">
+                <img src="https://jonnhy2255.github.io/GLB/crash.jpg" alt="Jeu 5">
+                <h3>Crash</h3>
+            </div>
+            <div class="game-card" onclick="window.open('https://jonnhy2255.github.io/GLB/crystal.html', '_blank')">
+                <img src="https://jonnhy2255.github.io/GLB/crystal.jpg" alt="Jeu 6">
+                <h3>Crystal</h3>
+            </div>
+            <div class="game-card" onclick="window.open('https://jonnhy2255.github.io/GLB/inclian-poker.html', '_blank')">
+                <img src="https://jonnhy2255.github.io/GLB/inclian-poker.jpg" alt="Jeu 7">
+                <h3>Inclian Poker</h3>
+            </div>
+            <div class="game-card" onclick="window.open('https://jonnhy2255.github.io/GLB/demo.html', '_blank')">
+                <img src="https://jonnhy2255.github.io/GLB/demo.jpg" alt="Jeu 8">
+                <h3>DEMO</h3>
+            </div>
+            <div class="game-card" onclick="window.open('https://jonnhy2255.github.io/GLB/best.html', '_blank')">
+                <img src="https://jonnhy2255.github.io/GLB/best.jpg" alt="Jeu 9">
+                <h3>BEST</h3>
+            </div>
+            <div class="game-card" onclick="window.open('https://jonnhy2255.github.io/GLB/demo2.html', '_blank')">
+                <img src="https://jonnhy2255.github.io/GLB/demo2.jpg" alt="Jeu 10">
+                <h3>DEMO</h3>
+            </div>
+            <div class="game-card" onclick="window.open('https://jonnhy2255.github.io/GLB/best2.html', '_blank')">
+                <img src="https://jonnhy2255.github.io/GLB/best2.jpg" alt="Jeu 11">
+                <h3>BEST</h3>
+            </div>
+            <div class="game-card" onclick="window.open('https://jonnhy2255.github.io/GLB/bonus.html', '_blank')">
+                <img src="https://jonnhy2255.github.io/GLB/bonus.jpg" alt="Jeu 12">
+                <h3>Bonus</h3>
+            </div>
+            <div class="game-card" onclick="window.open('https://jonnhy2255.github.io/GLB/cashback.html', '_blank')">
+                <img src="https://jonnhy2255.github.io/cashback.jpg" alt="Jeu 13">
+                <h3>Cashback</h3>
+            </div>
+            <div class="game-card" onclick="window.open('https://jonnhy2255.github.io/GLB/favoris.html', '_blank')">
+                <img src="https://jonnhy2255.github.io/GLB/favoris.jpg" alt="Jeu 14">
+                <h3>Favoris</h3>
+            </div>
+        </div>
+    </main>
+
+    <!-- JS intégré -->
+    <script>
+        // Gestion du menu latéral
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+        const openMenu = document.getElementById('openMenu');
+
+        openMenu.onclick = () => {
+            sidebar.classList.add('active');
+            overlay.classList.add('active');
+        };
+
+        overlay.onclick = () => {
+            sidebar.classList.remove('active');
+            overlay.classList.remove('active');
+        };
+
+        // Gestion du solde en sats
+        let solde = 0;
+        const soldeElement = document.getElementById('soldeSats');
+        document.getElementById('addSats').onclick = () => {
+            solde += 1000; // Exemple : ajoute 1000 sats par clic
+            soldeElement.textContent = `${solde} sats`;
+        };
+    </script>
+</body>
+</html>
