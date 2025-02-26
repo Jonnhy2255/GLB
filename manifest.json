@@ -1,0 +1,50 @@
+{
+    "name": "GLB Casino",
+    "short_name": "GLB",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#121212",
+    "theme_color": "#1c1c1c",
+    "icons": [
+        {
+            "src": "GLB-72.png",
+            "sizes": "72x72",
+            "type": "image/png"
+        },
+        {
+            "src": "GLB-96.png",
+            "sizes": "96x96",
+            "type": "image/png"
+        },
+        {
+            "src": "GLB-128.png",
+            "sizes": "128x128",
+            "type": "image/png"
+        },
+        {
+            "src": "GLB-144.png",
+            "sizes": "144x144",
+            "type": "image/png"
+        },
+        {
+            "src": "GLB-152.png",
+            "sizes": "152x152",
+            "type": "image/png"
+        },
+        {
+            "src": "GLB-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "GLB-384.png",
+            "sizes": "384x384",
+            "type": "image/png"
+        },
+        {
+            "src": "GLB-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}
