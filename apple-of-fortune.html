@@ -227,6 +227,10 @@
         let currentLevel = 0, bet = 0, winnings = 0, maxLevel = levels.length;
         let solde = 1000; // Solde initial du joueur
 
+        // Récupérer l'ID de l'utilisateur depuis l'URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('userId');
+
         // Fonction pour afficher la pop-up d'aide
         function showHelp() {
             popup.style.display = 'flex';
