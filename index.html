@@ -309,7 +309,14 @@
 
         <!-- Grille des jeux -->
         <div class="game-grid">
-            <!-- Les jeux ici -->
+            <div class="game-card" onclick="openGame('https://jonnhy2255.github.io/GLB/under-and-over-7.html')">
+                <img src="https://jonnhy2255.github.io/GLB/under-and-over-7.jpg" alt="Jeu 1">
+                <h3>Under and Over 7</h3>
+            </div>
+            <div class="game-card" onclick="openGame('https://jonnhy2255.github.io/GLB/apple-of-fortune.html')">
+                <img src="https://jonnhy2255.github.io/GLB/apple-of-fortune.jpg" alt="Jeu 2">
+                <h3>Apple of Fortune</h3>
+            </div>
         </div>
     </main>
 
@@ -474,11 +481,15 @@
             const userIdSpan = document.getElementById('userId');
             const authLink = document.getElementById('authLink');
             const deleteAccountLink = document.getElementById('deleteAccountLink');
+            const soldeSats = document.getElementById('soldeSats');
 
             if (currentUser) {
                 userInfo.style.display = 'block';
                 usernameDisplay.textContent = currentUser.username;
                 userIdSpan.textContent = currentUser.id;
+
+                // Mettre à jour le solde
+                soldeSats.textContent = `${currentUser.balance} sats`;
 
                 authLink.innerHTML = '<i class="fas fa-sign-out-alt"></i> Déconnexion';
                 authLink.onclick = logout;
@@ -538,7 +549,7 @@
         }
 
         // Gestion du menu
- const openMenu = document.getElementById('openMenu');
+        const openMenu = document.getElementById('openMenu');
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('overlay');
 
@@ -566,6 +577,17 @@
         document.getElementById('addSats').addEventListener('click', () => {
             document.getElementById('rechargeContainer').classList.add('active');
         });
+
+        // Fonction pour ouvrir un jeu
+        function openGame(url) {
+            if (!currentUser) {
+                showError("Vous devez être connecté pour jouer.");
+                authContainer.classList.add('active');
+                return;
+            }
+            // Ajouter l'ID de l'utilisateur à l'URL du jeu
+            window.open(`${url}?userId=${currentUser.id}`, '_blank');
+        }
 
         // Service Worker pour PWA
         if ('serviceWorker' in navigator) {
