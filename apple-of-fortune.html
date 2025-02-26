@@ -162,7 +162,7 @@
             </button>
 
             <!-- Solde (au centre) -->
-            <div id="solde">Solde : <span id="solde-value">1000</span> F</div>
+            <div id="solde">Solde : <span id="solde-value">0</span> sats</div>
 
             <!-- Bouton Comment ça marche (à droite) -->
             <button id="help-btn" onclick="showHelp()">
@@ -171,7 +171,7 @@
         </div>
 
         <h2 style="color: #333;">APPLE OF FORTUNE</h2>
-        <input type="number" id="bet-input" placeholder="Entrez votre mise (min 200 F)" min="200" value="500">
+        <input type="number" id="bet-input" placeholder="Entrez votre mise (min 200 sats)" min="200" value="500">
         <div id="controls">
             <button onclick="setBet(200)">MIN.</button>
             <button onclick="doubleBet()">X2</button>
@@ -191,7 +191,7 @@
         <div id="popup-content">
             <h3>Comment ça marche</h3>
             <p>
-                1. Entrez une mise (minimum 200 F).<br>
+                1. Entrez une mise (minimum 200 sats).<br>
                 2. Cliquez sur 'MISE' pour commencer.<br>
                 3. Cliquez sur une case pour révéler une pomme ou une pomme véreuse.<br>
                 4. Si vous révélez une pomme, vous passez au niveau suivant.<br>
@@ -225,11 +225,80 @@
         ];
 
         let currentLevel = 0, bet = 0, winnings = 0, maxLevel = levels.length;
-        let solde = 1000; // Solde initial du joueur
+        let solde = 0; // Solde initial en sats
 
         // Récupérer l'ID de l'utilisateur depuis l'URL
         const urlParams = new URLSearchParams(window.location.search);
         const userId = urlParams.get('userId');
+
+        // URL du fichier Users.json sur GitHub
+        const usersUrl = 'https://raw.githubusercontent.com/Jonnhy2255/2/main/Users.json';
+        const token = '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'; // Votre token GitHub
+
+        // Fonction pour récupérer les utilisateurs depuis GitHub
+        async function fetchUsers() {
+            try {
+                const response = await fetch(usersUrl);
+                if (!response.ok) throw new Error("Erreur lors de la récupération des utilisateurs");
+                return await response.json();
+            } catch (error) {
+                console.error("Erreur :", error);
+                return [];
+            }
+        }
+
+        // Fonction pour mettre à jour les utilisateurs sur GitHub
+        async function updateUsers(users) {
+            const url = 'https://api.github.com/repos/Jonnhy2255/2/contents/Users.json';
+            const content = btoa(JSON.stringify(users, null, 2));
+
+            // Récupérer le SHA du fichier actuel
+            const currentFile = await fetch(url, {
+                headers: {
+                    'Authorization': `token ${token}`,
+                },
+            }).then(response => response.json());
+
+            // Mettre à jour le fichier
+            const response = await fetch(url, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `token ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: 'Mise à jour des utilisateurs',
+                    content: content,
+                    sha: currentFile.sha, // SHA du fichier actuel
+                }),
+            });
+
+            return response.json();
+        }
+
+        // Fonction pour récupérer le solde de l'utilisateur
+        async function fetchUserBalance() {
+            const users = await fetchUsers();
+            const user = users.find(u => u.id === userId);
+            if (user) {
+                solde = user.balance;
+                updateSolde();
+            } else {
+                alert("Utilisateur non trouvé !");
+            }
+        }
+
+        // Fonction pour mettre à jour le solde de l'utilisateur
+        async function updateUserBalance(newBalance) {
+            const users = await fetchUsers();
+            const user = users.find(u => u.id === userId);
+            if (user) {
+                user.balance = newBalance;
+                await updateUsers(users);
+            } else {
+                alert("Utilisateur non trouvé !");
+            }
+        }
 
         // Fonction pour afficher la pop-up d'aide
         function showHelp() {
@@ -263,20 +332,21 @@
         function setBet(amount) { document.getElementById('bet-input').value = amount; }
         function doubleBet() { adjustBet(val => val * 2); }
         function halfBet() { adjustBet(val => Math.max(200, Math.floor(val / 2))); }
-        function setMaxBet() { setBet(708815); }
+        function setMaxBet() { setBet(solde); }
         function adjustBet(func) {
             let val = parseInt(document.getElementById('bet-input').value);
             document.getElementById('bet-input').value = func(val);
         }
 
-        function startGame() {
+        async function startGame() {
             bet = parseInt(document.getElementById('bet-input').value);
-            if (bet < 200) return alert("La mise minimale est de 200 F.");
+            if (bet < 200) return alert("La mise minimale est de 200 sats.");
             if (bet > solde) return alert("Solde insuffisant !");
             solde -= bet; // Déduire la mise du solde
+            await updateUserBalance(solde); // Mettre à jour le solde dans Users.json
             updateSolde();
             resetGame();
-            statusDiv.textContent = `Mise : ${bet} F - Niveau ${currentLevel + 1}/${maxLevel}`;
+            statusDiv.textContent = `Mise : ${bet} sats - Niveau ${currentLevel + 1}/${maxLevel}`;
             generateLevel();
         }
 
@@ -310,45 +380,45 @@
             levelsContainer.appendChild(levelDiv);
         }
 
-        function revealCell(cell, gridDiv) {
+        async function revealCell(cell, gridDiv) {
             if (cell.dataset.trognon === 'true') {
                 cell.classList.add('trognon');
                 gridDiv.querySelectorAll('.cell').forEach(c => c.classList.add('revealed'));
-                endGame(false);
+                await endGame(false);
             } else {
                 cell.classList.add('pomme');
                 cell.classList.add('revealed');
                 gridDiv.querySelectorAll('.cell').forEach(c => c.classList.add('revealed'));
-                nextLevel();
+                await nextLevel();
             }
         }
 
-        function nextLevel() {
+        async function nextLevel() {
             winnings = Math.floor(bet * levels[currentLevel].multiplier);
             currentLevel++;
-            statusDiv.textContent = `Gains : ${winnings} F - Niveau ${currentLevel}/${maxLevel}`;
+            statusDiv.textContent = `Gains : ${winnings} sats - Niveau ${currentLevel}/${maxLevel}`;
             if (currentLevel >= 1) collectBtn.style.display = 'block';
             if (currentLevel < maxLevel) setTimeout(generateLevel, 1000);
-            else endGame(true);
+            else await endGame(true);
         }
 
-        function endGame(won) {
+        async function endGame(won) {
             if (won) {
                 solde += winnings; // Ajouter les gains au solde
-                updateSolde();
+                await updateUserBalance(solde); // Mettre à jour le solde dans Users.json
             }
-            statusDiv.textContent = won ? `Félicitations ! Vous avez gagné ${winnings} F.` : "Perdu ! C'était une pomme véreuse.";
+            statusDiv.textContent = won ? `Félicitations ! Vous avez gagné ${winnings} sats.` : "Perdu ! C'était une pomme véreuse.";
             collectBtn.style.display = won && winnings > 0 ? 'block' : 'none';
         }
 
-        function collectWinnings() {
-            alert(`Vous avez récupéré ${winnings} F.`);
+        async function collectWinnings() {
+            alert(`Vous avez récupéré ${winnings} sats.`);
             resetGame();
             statusDiv.textContent = "Faites une nouvelle mise pour rejouer.";
         }
 
-        // Initialiser le solde
-        updateSolde();
+        // Initialiser le solde au chargement de la page
+        fetchUserBalance();
     </script>
 </body>
 </html>
