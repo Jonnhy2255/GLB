@@ -156,15 +156,10 @@
     <div id="game-container">
         <!-- En-tête avec boutons et solde -->
         <div id="header">
-            <!-- Bouton Sortie (à gauche) -->
             <button id="exit-btn" onclick="exitGame()">
                 <i class="fas fa-sign-out-alt"></i>
             </button>
-
-            <!-- Solde (au centre) -->
             <div id="solde">Solde : <span id="solde-value">0</span> sats</div>
-
-            <!-- Bouton Comment ça marche (à droite) -->
             <button id="help-btn" onclick="showHelp()">
                 <i class="fas fa-question-circle"></i>
             </button>
@@ -281,8 +276,8 @@
             const users = await fetchUsers();
             const user = users.find(u => u.id === userId);
             if (user) {
-                solde = user.balance;
-                updateSolde();
+                solde = user.balance; // Mettre à jour le solde local
+                updateSolde(); // Mettre à jour l'affichage du solde
             } else {
                 alert("Utilisateur non trouvé !");
             }
@@ -293,8 +288,8 @@
             const users = await fetchUsers();
             const user = users.find(u => u.id === userId);
             if (user) {
-                user.balance = newBalance;
-                await updateUsers(users);
+                user.balance = newBalance; // Mettre à jour le solde de l'utilisateur
+                await updateUsers(users); // Mettre à jour le fichier Users.json
             } else {
                 alert("Utilisateur non trouvé !");
             }
