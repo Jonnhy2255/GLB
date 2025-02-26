@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GLB Casino</title>
+    <!-- Font Awesome pour les icônes -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Manifest pour PWA -->
+    <link rel="manifest" href="manifest.json">
     <style>
         /* Style global */
         * {
@@ -58,8 +62,13 @@
         #soldeSats {
             font-size: 16px;
         }
+        .user-info {
+            display: none;
+            font-size: 16px;
+            color: #fff;
+        }
 
-        /* Menu latéral */
+        /* Menu latéral modernisé */
         .sidebar {
             width: 250px;
             height: 100%;
@@ -75,15 +84,25 @@
             left: 0;
         }
         .sidebar-content a {
-            display: block;
+            display: flex;
+            align-items: center;
             padding: 15px 30px;
             color: #fff;
             text-decoration: none;
             font-size: 18px;
             transition: background 0.3s;
         }
+        .sidebar-content a i {
+            margin-right: 10px;
+        }
         .sidebar-content a:hover {
             background-color: #333;
+        }
+        #userIdDisplay {
+            display: none;
+            padding: 15px 30px;
+            font-size: 14px;
+            color: #888;
         }
 
         /* Overlay lors de l'ouverture du menu */
@@ -134,6 +153,125 @@
             font-size: 16px;
             margin-top: 10px;
         }
+
+        /* Formulaire de connexion/inscription */
+        .auth-container {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #1c1c1c;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            z-index: 20;
+            width: 300px;
+            text-align: center;
+            animation: fadeIn 0.3s ease;
+        }
+        .auth-container.active {
+            display: block;
+        }
+        .auth-container h2 {
+            margin-bottom: 20px;
+        }
+        .auth-container input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 1px solid #333;
+            background-color: #222;
+            color: #fff;
+        }
+        .auth-container button {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            background-color: #28a745;
+            color: #fff;
+            cursor: pointer;
+        }
+        .auth-container button:hover {
+            background-color: #218838;
+        }
+        .auth-container p {
+            margin-top: 10px;
+        }
+        .auth-container a {
+            color: #28a745;
+            text-decoration: none;
+        }
+
+        /* Bouton de fermeture */
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 20px;
+            cursor: pointer;
+            color: #fff;
+        }
+
+        /* Page de recharge BTC Lightning */
+        .recharge-container {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #1c1c1c;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            z-index: 20;
+            width: 300px;
+            text-align: center;
+            animation: fadeIn 0.3s ease;
+        }
+        .recharge-container.active {
+            display: block;
+        }
+        .recharge-container h2 {
+            margin-bottom: 20px;
+        }
+        .recharge-container input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 1px solid #333;
+            background-color: #222;
+            color: #fff;
+        }
+        .recharge-container button {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            background-color: #28a745;
+            color: #fff;
+            cursor: pointer;
+        }
+        .recharge-container button:hover {
+            background-color: #218838;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Messages d'erreur */
+        .error-message {
+            color: #dc3545;
+            font-size: 14px;
+            margin-top: 10px;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -147,13 +285,20 @@
         </div>
     </header>
 
-    <!-- Menu latéral -->
+    <!-- Menu latéral modernisé -->
     <nav id="sidebar" class="sidebar">
         <div class="sidebar-content">
-            <a href="#">Accueil</a>
-            <a href="#">Profil</a>
-            <a href="#">Transactions</a>
-            <a href="#">Paramètres</a>
+            <a href="#"><i class="fas fa-home"></i> Accueil</a>
+            <a href="#"><i class="fas fa-user"></i> Profil</a>
+            <a href="#"><i class="fas fa-exchange-alt"></i> Transactions</a>
+            <a href="#"><i class="fas fa-cog"></i> Paramètres</a>
+            <a href="#" id="authLink"><i class="fas fa-sign-in-alt"></i> Connexion</a>
+            <a href="#" id="deleteAccountLink" style="display: none;"><i class="fas fa-trash"></i> Supprimer le compte</a>
+            <div id="userIdDisplay">
+                <span id="usernameDisplay"></span>
+                <br>
+                ID: <span id="userId"></span>
+            </div>
         </div>
     </nav>
     <div id="overlay"></div>
@@ -164,89 +309,270 @@
 
         <!-- Grille des jeux -->
         <div class="game-grid">
-            <div class="game-card" onclick="window.open('https://jonnhy2255.github.io/GLB/under-and-over-7.html', '_blank')">
-                <img src="https://jonnhy2255.github.io/GLB/under-and-over-7.jpg" alt="Jeu 1">
-                <h3>Under and Over 7</h3>
-            </div>
-            <div class="game-card" onclick="window.open('https://jonnhy2255.github.io/GLB/red-or-black.html', '_blank')">
-                <img src="https://jonnhy2255.github.io/GLB/red-or-black.jpg" alt="Jeu 2">
-                <h3>Red or Black</h3>
-            </div>
-            <div class="game-card" onclick="window.open('https://jonnhy2255.github.io/GLB/gold-or-bomb.html', '_blank')">
-                <img src="https://jonnhy2255.github.io/GLB/gold-or-bomb.jpg" alt="Jeu 3">
-                <h3>Gold or Bomb</h3>
-            </div>
-            <div class="game-card" onclick="window.open('https://jonnhy2255.github.io/GLB/pile-ou-face.html', '_blank')">
-                <img src="https://jonnhy2255.github.io/GLB/pile-ou-face.jpg" alt="Jeu 4">
-                <h3>Pile ou Face</h3>
-            </div>
-            <div class="game-card" onclick="window.open('https://jonnhy2255.github.io/GLB/crash.html', '_blank')">
-                <img src="https://jonnhy2255.github.io/GLB/crash.jpg" alt="Jeu 5">
-                <h3>Crash</h3>
-            </div>
-            <div class="game-card" onclick="window.open('https://jonnhy2255.github.io/GLB/crystal.html', '_blank')">
-                <img src="https://jonnhy2255.github.io/GLB/crystal.jpg" alt="Jeu 6">
-                <h3>Crystal</h3>
-            </div>
-            <div class="game-card" onclick="window.open('https://jonnhy2255.github.io/GLB/inclian-poker.html', '_blank')">
-                <img src="https://jonnhy2255.github.io/GLB/inclian-poker.jpg" alt="Jeu 7">
-                <h3>Inclian Poker</h3>
-            </div>
-            <div class="game-card" onclick="window.open('https://jonnhy2255.github.io/GLB/demo.html', '_blank')">
-                <img src="https://jonnhy2255.github.io/GLB/demo.jpg" alt="Jeu 8">
-                <h3>DEMO</h3>
-            </div>
-            <div class="game-card" onclick="window.open('https://jonnhy2255.github.io/GLB/best.html', '_blank')">
-                <img src="https://jonnhy2255.github.io/GLB/best.jpg" alt="Jeu 9">
-                <h3>BEST</h3>
-            </div>
-            <div class="game-card" onclick="window.open('https://jonnhy2255.github.io/GLB/demo2.html', '_blank')">
-                <img src="https://jonnhy2255.github.io/GLB/demo2.jpg" alt="Jeu 10">
-                <h3>DEMO</h3>
-            </div>
-            <div class="game-card" onclick="window.open('https://jonnhy2255.github.io/GLB/best2.html', '_blank')">
-                <img src="https://jonnhy2255.github.io/GLB/best2.jpg" alt="Jeu 11">
-                <h3>BEST</h3>
-            </div>
-            <div class="game-card" onclick="window.open('https://jonnhy2255.github.io/GLB/bonus.html', '_blank')">
-                <img src="https://jonnhy2255.github.io/GLB/bonus.jpg" alt="Jeu 12">
-                <h3>Bonus</h3>
-            </div>
-            <div class="game-card" onclick="window.open('https://jonnhy2255.github.io/GLB/cashback.html', '_blank')">
-                <img src="https://jonnhy2255.github.io/cashback.jpg" alt="Jeu 13">
-                <h3>Cashback</h3>
-            </div>
-            <div class="game-card" onclick="window.open('https://jonnhy2255.github.io/GLB/favoris.html', '_blank')">
-                <img src="https://jonnhy2255.github.io/GLB/favoris.jpg" alt="Jeu 14">
-                <h3>Favoris</h3>
-            </div>
+            <!-- Les jeux ici -->
         </div>
     </main>
 
+    <!-- Formulaire de connexion/inscription -->
+    <div id="authContainer" class="auth-container">
+        <span class="close-btn" onclick="closeAuth()">&times;</span>
+        <h2 id="authTitle">Connexion</h2>
+        <input type="text" id="username" placeholder="Nom d'utilisateur">
+        <input type="password" id="password" placeholder="Mot de passe">
+        <div id="errorMessage" class="error-message"></div>
+        <button id="authButton" onclick="handleAuth()">Se connecter</button>
+        <p id="authToggle">Pas de compte ? <a href="#" onclick="toggleAuth()">S'inscrire</a></p>
+    </div>
+
+    <!-- Page de recharge BTC Lightning -->
+    <div id="rechargeContainer" class="recharge-container">
+        <span class="close-btn" onclick="closeRecharge()">&times;</span>
+        <h2>Recharge BTC Lightning</h2>
+        <input type="text" id="invoice" placeholder="Invoice Lightning">
+        <button onclick="recharge()">Recharger</button>
+    </div>
+
     <!-- JS intégré -->
     <script>
-        // Gestion du menu latéral
+        // URL du fichier Users.json sur GitHub
+        const usersUrl = 'https://raw.githubusercontent.com/Jonnhy2255/2/main/Users.json';
+        const token = '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'; // Votre token GitHub
+        let currentUser = null;
+
+        // Générer un ID unique
+        function generateUserId() {
+            return 'user_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        // Récupérer les utilisateurs depuis GitHub
+        async function fetchUsers() {
+            try {
+                const response = await fetch(usersUrl);
+                if (!response.ok) throw new Error("Erreur lors de la récupération des utilisateurs");
+                return await response.json();
+            } catch (error) {
+                console.error("Erreur :", error);
+                return [];
+            }
+        }
+
+        // Mettre à jour les utilisateurs sur GitHub
+        async function updateUsers(users) {
+            const url = 'https://api.github.com/repos/Jonnhy2255/2/contents/Users.json';
+            const content = btoa(JSON.stringify(users, null, 2));
+
+            // Récupérer le SHA du fichier actuel
+            const currentFile = await fetch(url, {
+                headers: {
+                    'Authorization': `token ${token}`,
+                },
+            }).then(response => response.json());
+
+            // Mettre à jour le fichier
+            const response = await fetch(url, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `token ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: 'Mise à jour des utilisateurs',
+                    content: content,
+                    sha: currentFile.sha, // SHA du fichier actuel
+                }),
+            });
+
+            return response.json();
+        }
+
+        // Gestion de l'authentification
+        async function handleAuth() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+
+            if (!username || !password) {
+                showError("Veuillez remplir tous les champs !");
+                return;
+            }
+
+            if (document.getElementById('authTitle').textContent === 'Connexion') {
+                await login(username, password);
+            } else {
+                await register(username, password);
+            }
+        }
+
+        // Inscription
+        async function register(username, password) {
+            const users = await fetchUsers();
+            const userId = generateUserId();
+
+            // Vérifier si l'utilisateur existe déjà
+            const userExists = users.some(u => u.username === username);
+            if (userExists) {
+                showError("Ce nom d'utilisateur est déjà pris.");
+                return;
+            }
+
+            const userData = {
+                id: userId,
+                username: username,
+                password: password, // Stockage en clair (simplifié)
+                balance: 1000,
+            };
+
+            users.push(userData);
+            await updateUsers(users);
+
+            currentUser = userData;
+            updateUserDisplay();
+            clearForm();
+            authContainer.classList.remove('active');
+        }
+
+        // Connexion
+        async function login(username, password) {
+            const users = await fetchUsers();
+            console.log("Utilisateurs récupérés :", users); // Log pour déboguer
+
+            // Recherche de l'utilisateur
+            const user = users.find(u => u.username === username && u.password === password);
+
+            if (user) {
+                currentUser = user;
+                updateUserDisplay();
+                clearForm();
+                authContainer.classList.remove('active');
+            } else {
+                showError("Nom d'utilisateur ou mot de passe incorrect !");
+            }
+        }
+
+        // Déconnexion
+        function logout() {
+            currentUser = null;
+            updateUserDisplay();
+        }
+
+        // Supprimer le compte
+        async function deleteAccount() {
+            if (!currentUser) return;
+
+            const users = await fetchUsers();
+            const updatedUsers = users.filter(u => u.id !== currentUser.id);
+
+            await updateUsers(updatedUsers);
+            currentUser = null;
+            updateUserDisplay();
+            alert("Votre compte a été supprimé.");
+        }
+
+        // Mettre à jour l'affichage de l'utilisateur
+        function updateUserDisplay() {
+            const userInfo = document.getElementById('userIdDisplay');
+            const usernameDisplay = document.getElementById('usernameDisplay');
+            const userIdSpan = document.getElementById('userId');
+            const authLink = document.getElementById('authLink');
+            const deleteAccountLink = document.getElementById('deleteAccountLink');
+
+            if (currentUser) {
+                userInfo.style.display = 'block';
+                usernameDisplay.textContent = currentUser.username;
+                userIdSpan.textContent = currentUser.id;
+
+                authLink.innerHTML = '<i class="fas fa-sign-out-alt"></i> Déconnexion';
+                authLink.onclick = logout;
+
+                deleteAccountLink.style.display = 'block';
+                deleteAccountLink.onclick = deleteAccount;
+            } else {
+                userInfo.style.display = 'none';
+
+                authLink.innerHTML = '<i class="fas fa-sign-in-alt"></i> Connexion';
+                authLink.onclick = () => authContainer.classList.add('active');
+
+                deleteAccountLink.style.display = 'none';
+            }
+        }
+
+        // Basculer entre connexion et inscription
+        function toggleAuth() {
+            const authTitle = document.getElementById('authTitle');
+            const authButton = document.getElementById('authButton');
+            const authToggle = document.getElementById('authToggle');
+
+            if (authTitle.textContent === 'Connexion') {
+                authTitle.textContent = 'Inscription';
+                authButton.textContent = "S'inscrire";
+                authToggle.innerHTML = 'Déjà un compte ? <a href="#" onclick="toggleAuth()">Se connecter</a>';
+            } else {
+                authTitle.textContent = 'Connexion';
+                authButton.textContent = 'Se connecter';
+                authToggle.innerHTML = 'Pas de compte ? <a href="#" onclick="toggleAuth()">S\'inscrire</a>';
+            }
+        }
+
+        // Afficher un message d'erreur
+        function showError(message) {
+            const errorMessage = document.getElementById('errorMessage');
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+        }
+
+        // Vider les champs du formulaire
+        function clearForm() {
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('errorMessage').style.display = 'none';
+        }
+
+        // Fermer le formulaire d'authentification
+        function closeAuth() {
+            authContainer.classList.remove('active');
+            clearForm();
+        }
+
+        // Fermer la page de recharge
+        function closeRecharge() {
+            document.getElementById('rechargeContainer').classList.remove('active');
+        }
+
+        // Gestion du menu
+ const openMenu = document.getElementById('openMenu');
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('overlay');
-        const openMenu = document.getElementById('openMenu');
 
-        openMenu.onclick = () => {
-            sidebar.classList.add('active');
-            overlay.classList.add('active');
-        };
+        openMenu.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
+        });
 
-        overlay.onclick = () => {
+        overlay.addEventListener('click', () => {
             sidebar.classList.remove('active');
             overlay.classList.remove('active');
-        };
+        });
 
-        // Gestion du solde en sats
-        let solde = 0;
-        const soldeElement = document.getElementById('soldeSats');
-        document.getElementById('addSats').onclick = () => {
-            solde += 1000; // Exemple : ajoute 1000 sats par clic
-            soldeElement.textContent = `${solde} sats`;
-        };
+        // Charger l'utilisateur connecté au démarrage
+        updateUserDisplay();
+
+        // Recharge BTC Lightning
+        function recharge() {
+            const invoice = document.getElementById('invoice').value;
+            alert(`Recharge en cours avec l'invoice : ${invoice}`);
+            // Ici, vous pouvez ajouter la logique pour traiter l'invoice Lightning
+        }
+
+        // Ouvrir la page de recharge
+        document.getElementById('addSats').addEventListener('click', () => {
+            document.getElementById('rechargeContainer').classList.add('active');
+        });
+
+        // Service Worker pour PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js')
+                .then(() => console.log('Service Worker enregistré'))
+                .catch(err => console.error('Erreur Service Worker :', err));
+        }
     </script>
 </body>
 </html>
