@@ -3,9 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Apple of Fortune - Version améliorée</title>
+    <title>Apple of Fortune - GLB Casino</title>
+    <!-- Lien pour Font Awesome si besoin -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-     <style>
+    
+    <!-- ✅ ESPACE POUR INSÉRER LES STYLES -->
+    <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: Arial, sans-serif;
@@ -154,18 +157,13 @@
 </head>
 <body>
     <div id="game-container">
-        <!-- En-tête avec boutons et solde -->
         <div id="header">
-            <button id="exit-btn" onclick="exitGame()">
-                <i class="fas fa-sign-out-alt"></i>
-            </button>
+            <button id="exit-btn" onclick="exitGame()">Quitter</button>
             <div id="solde">Solde : <span id="solde-value">0</span> sats</div>
-            <button id="help-btn" onclick="showHelp()">
-                <i class="fas fa-question-circle"></i>
-            </button>
+            <button id="help-btn" onclick="showHelp()">Aide</button>
         </div>
 
-        <h2 style="color: #333;">APPLE OF FORTUNE</h2>
+        <h2>APPLE OF FORTUNE</h2>
         <input type="number" id="bet-input" placeholder="Entrez votre mise (min 200 sats)" min="200" value="500">
         <div id="controls">
             <button onclick="setBet(200)">MIN.</button>
@@ -176,12 +174,11 @@
         <button id="start-btn" onclick="startGame()">MISE</button>
 
         <div id="levels"></div>
-
         <button id="collect-btn" onclick="collectWinnings()">RÉCUPÉRER MES GAINS</button>
         <div id="status"></div>
     </div>
 
-    <!-- Pop-up pour "Comment ça marche" -->
+    <!-- Pop-up pour l'aide -->
     <div id="popup">
         <div id="popup-content">
             <h3>Comment ça marche</h3>
@@ -189,141 +186,104 @@
                 1. Entrez une mise (minimum 200 sats).<br>
                 2. Cliquez sur 'MISE' pour commencer.<br>
                 3. Cliquez sur une case pour révéler une pomme ou une pomme véreuse.<br>
-                4. Si vous révélez une pomme, vous passez au niveau suivant.<br>
-                5. Si vous révélez une pomme véreuse, le jeu se termine.<br>
-                6. Utilisez le bouton 'RÉCUPÉRER MES GAINS' pour collecter vos gains.
+                4. Récupérez vos gains avant de perdre !
             </p>
             <button id="popup-close" onclick="closeHelp()">Fermer</button>
         </div>
     </div>
 
+    <!-- ✅ SCRIPT PRINCIPAL -->
     <script>
-        const levelsContainer = document.getElementById('levels');
-        const statusDiv = document.getElementById('status');
-        const collectBtn = document.getElementById('collect-btn');
-        const startBtn = document.getElementById('start-btn');
+        const usersUrl = 'https://raw.githubusercontent.com/Jonnhy2255/2/main/Users.json';
+        const updateUrl = 'https://api.github.com/repos/Jonnhy2255/2/contents/Users.json';
         const soldeValue = document.getElementById('solde-value');
+        const statusDiv = document.getElementById('status');
+        const levelsContainer = document.getElementById('levels');
+        const collectBtn = document.getElementById('collect-btn');
         const popup = document.getElementById('popup');
 
-        // Multiplicateurs et nombre de pommes véreuses par niveau
+        let currentLevel = 0, bet = 0, winnings = 0, solde = 0;
         const levels = [
-            { multiplier: 1.23, trognons: 1 },  // Niveau 1
-            { multiplier: 1.54, trognons: 1 },  // Niveau 2
-            { multiplier: 1.93, trognons: 1 },  // Niveau 3
-            { multiplier: 2.41, trognons: 1 },  // Niveau 4
-            { multiplier: 4.02, trognons: 2 },  // Niveau 5
-            { multiplier: 6.71, trognons: 2 },  // Niveau 6
-            { multiplier: 11.18, trognons: 2 }, // Niveau 7
-            { multiplier: 27.97, trognons: 3 }, // Niveau 8
-            { multiplier: 69.93, trognons: 3 }, // Niveau 9
-            { multiplier: 349.68, trognons: 4 } // Niveau 10
+            { multiplier: 1.23, trognons: 1 }, { multiplier: 1.54, trognons: 1 },
+            { multiplier: 1.93, trognons: 1 }, { multiplier: 2.41, trognons: 1 },
+            { multiplier: 4.02, trognons: 2 }, { multiplier: 6.71, trognons: 2 },
+            { multiplier: 11.18, trognons: 2 }, { multiplier: 27.97, trognons: 3 },
+            { multiplier: 69.93, trognons: 3 }, { multiplier: 349.68, trognons: 4 }
         ];
 
-        let currentLevel = 0, bet = 0, winnings = 0, maxLevel = levels.length;
-        let solde = 0; // Solde initial en sats
-
-        // Récupérer l'ID de l'utilisateur depuis l'URL
+        // Récupérer l'ID utilisateur depuis l'URL
         const urlParams = new URLSearchParams(window.location.search);
         const userId = urlParams.get('userId');
+        if (!userId) {
+            alert("ID utilisateur manquant !");
+            window.location.href = "index.html";
+        }
 
-        // URL du fichier Users.json sur GitHub
-        const usersUrl = 'https://raw.githubusercontent.com/Jonnhy2255/2/main/Users.json';
-        const token = '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'; // Nouveau token GitHub
-
-        // Fonction pour récupérer les utilisateurs depuis GitHub
+        // 🔄 Récupérer les utilisateurs
         async function fetchUsers() {
-            try {
-                const response = await fetch(usersUrl);
-                if (!response.ok) throw new Error("Erreur lors de la récupération des utilisateurs");
-                return await response.json();
-            } catch (error) {
-                console.error("Erreur :", error);
-                return [];
+            const response = await fetch(usersUrl);
+            if (!response.ok) throw new Error("Erreur lors du chargement des utilisateurs.");
+            return await response.json();
+        }
+
+        // 🔄 Récupérer le SHA du fichier
+        async function getFileSHA() {
+            const response = await fetch(updateUrl);
+            const data = await response.json();
+            return data.sha;
+        }
+
+        // 🔄 Mettre à jour Users.json sur GitHub
+        async function updateUsersOnGitHub(users) {
+            const sha = await getFileSHA();
+            const content = btoa(JSON.stringify(users, null, 2));
+            const response = await fetch(updateUrl, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: 'Mise à jour du solde', content, sha })
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                console.error("Erreur GitHub :", result);
+                alert(`Erreur GitHub : ${result.message}`);
+            } else {
+                console.log("✅ Solde mis à jour !");
             }
         }
 
-        // Fonction pour mettre à jour les utilisateurs sur GitHub
-        async function updateUsers(users) {
-            const url = 'https://api.github.com/repos/Jonnhy2255/2/contents/Users.json';
-            const content = btoa(JSON.stringify(users, null, 2));
-
-            // Récupérer le SHA du fichier actuel
-            const currentFile = await fetch(url, {
-                headers: {
-                    'Authorization': `token ${token}`,
-                },
-            }).then(response => response.json());
-
-            // Mettre à jour le fichier
-            const response = await fetch(url, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `token ${token}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    message: 'Mise à jour des utilisateurs',
-                    content: content,
-                    sha: currentFile.sha, // SHA du fichier actuel
-                }),
-            });
-
-            return response.json();
-        }
-
-        // Fonction pour récupérer le solde de l'utilisateur
+        // 🔄 Synchroniser le solde utilisateur
         async function fetchUserBalance() {
             const users = await fetchUsers();
             const user = users.find(u => u.id === userId);
             if (user) {
-                solde = user.balance; // Mettre à jour le solde local
-                updateSolde(); // Mettre à jour l'affichage du solde
+                solde = user.balance;
+                updateSolde();
             } else {
                 alert("Utilisateur non trouvé !");
+                window.location.href = "index.html";
             }
         }
 
-        // Fonction pour mettre à jour le solde de l'utilisateur
+        // 🔄 Mettre à jour le solde
         async function updateUserBalance(newBalance) {
             const users = await fetchUsers();
             const user = users.find(u => u.id === userId);
             if (user) {
-                user.balance = newBalance; // Mettre à jour le solde de l'utilisateur
-                await updateUsers(users); // Mettre à jour le fichier Users.json
+                user.balance = newBalance;
+                solde = newBalance;
+                await updateUsersOnGitHub(users);
+                updateSolde();
             } else {
-                alert("Utilisateur non trouvé !");
+                alert("Erreur lors de la mise à jour du solde !");
             }
         }
 
-        // Fonction pour afficher la pop-up d'aide
-        function showHelp() {
-            popup.style.display = 'flex';
-        }
-
-        // Fonction pour fermer la pop-up d'aide
-        function closeHelp() {
-            popup.style.display = 'none';
-        }
-
-        // Fermer la pop-up en cliquant en dehors
-        window.onclick = function(event) {
-            if (event.target === popup) {
-                closeHelp();
-            }
-        };
-
-        // Fonction pour quitter le jeu (retour à la page précédente)
-        function exitGame() {
-            if (confirm("Voulez-vous vraiment quitter le jeu ?")) {
-                history.back(); // Retour à la page précédente
-            }
-        }
-
-        // Mettre à jour le solde affiché
+        // 🔄 Mettre à jour l'affichage du solde
         function updateSolde() {
             soldeValue.textContent = solde;
         }
 
+        // ⚡ Contrôles de mise
         function setBet(amount) { document.getElementById('bet-input').value = amount; }
         function doubleBet() { adjustBet(val => val * 2); }
         function halfBet() { adjustBet(val => Math.max(200, Math.floor(val / 2))); }
@@ -333,18 +293,20 @@
             document.getElementById('bet-input').value = func(val);
         }
 
+        // ⚡ Lancer le jeu
         async function startGame() {
+            await fetchUserBalance(); // 🔄 Vérification du solde en temps réel
             bet = parseInt(document.getElementById('bet-input').value);
-            if (bet < 200) return alert("La mise minimale est de 200 sats.");
+            if (bet < 200) return alert("Mise minimale : 200 sats.");
             if (bet > solde) return alert("Solde insuffisant !");
-            solde -= bet; // Déduire la mise du solde
-            await updateUserBalance(solde); // Mettre à jour le solde dans Users.json
-            updateSolde();
+            solde -= bet;
+            await updateUserBalance(solde);
             resetGame();
-            statusDiv.textContent = `Mise : ${bet} sats - Niveau ${currentLevel + 1}/${maxLevel}`;
+            statusDiv.textContent = `Mise : ${bet} sats - Niveau ${currentLevel + 1}/${levels.length}`;
             generateLevel();
         }
 
+        // ⚡ Génération des niveaux
         function resetGame() {
             levelsContainer.innerHTML = '';
             currentLevel = 0; winnings = 0;
@@ -354,22 +316,17 @@
         function generateLevel() {
             const levelDiv = document.createElement('div');
             levelDiv.classList.add('level');
-
             const multiplierDiv = document.createElement('div');
-            multiplierDiv.classList.add('multiplier');
             multiplierDiv.textContent = `x${levels[currentLevel].multiplier}`;
             levelDiv.appendChild(multiplierDiv);
 
             const gridDiv = document.createElement('div');
-            gridDiv.classList.add('grid');
-            const cells = [];
             for (let i = 0; i < 5; i++) {
                 const cell = document.createElement('div');
                 cell.classList.add('cell');
-                cell.dataset.trognon = i < levels[currentLevel].trognons; // Assigner les pommes véreuses
+                cell.dataset.trognon = i < levels[currentLevel].trognons;
                 cell.onclick = () => revealCell(cell, gridDiv);
                 gridDiv.appendChild(cell);
-                cells.push(cell);
             }
             levelDiv.appendChild(gridDiv);
             levelsContainer.appendChild(levelDiv);
@@ -377,42 +334,41 @@
 
         async function revealCell(cell, gridDiv) {
             if (cell.dataset.trognon === 'true') {
-                cell.classList.add('trognon');
                 gridDiv.querySelectorAll('.cell').forEach(c => c.classList.add('revealed'));
                 await endGame(false);
             } else {
-                cell.classList.add('pomme');
-                cell.classList.add('revealed');
-                gridDiv.querySelectorAll('.cell').forEach(c => c.classList.add('revealed'));
-                await nextLevel();
+                winnings = Math.floor(bet * levels[currentLevel].multiplier);
+                currentLevel++;
+                statusDiv.textContent = `Gains : ${winnings} sats - Niveau ${currentLevel}/${levels.length}`;
+                if (currentLevel < levels.length) setTimeout(generateLevel, 1000);
+                else await endGame(true);
             }
-        }
-
-        async function nextLevel() {
-            winnings = Math.floor(bet * levels[currentLevel].multiplier);
-            currentLevel++;
-            statusDiv.textContent = `Gains : ${winnings} sats - Niveau ${currentLevel}/${maxLevel}`;
-            if (currentLevel >= 1) collectBtn.style.display = 'block';
-            if (currentLevel < maxLevel) setTimeout(generateLevel, 1000);
-            else await endGame(true);
         }
 
         async function endGame(won) {
             if (won) {
-                solde += winnings; // Ajouter les gains au solde
-                await updateUserBalance(solde); // Mettre à jour le solde dans Users.json
+                solde += winnings;
+                await updateUserBalance(solde);
             }
-            statusDiv.textContent = won ? `Félicitations ! Vous avez gagné ${winnings} sats.` : "Perdu ! C'était une pomme véreuse.";
-            collectBtn.style.display = won && winnings > 0 ? 'block' : 'none';
+            statusDiv.textContent = won ? `🎉 Gagné : ${winnings} sats !` : "💀 Perdu !";
+            collectBtn.style.display = won ? 'block' : 'none';
         }
 
         async function collectWinnings() {
-            alert(`Vous avez récupéré ${winnings} sats.`);
+            alert(`💰 Vous avez récupéré ${winnings} sats.`);
             resetGame();
             statusDiv.textContent = "Faites une nouvelle mise pour rejouer.";
         }
 
-        // Initialiser le solde au chargement de la page
+        function exitGame() {
+            if (confirm("Voulez-vous vraiment quitter le jeu ?")) window.history.back();
+        }
+
+        function showHelp() { popup.style.display = 'flex'; }
+        function closeHelp() { popup.style.display = 'none'; }
+        window.onclick = (e) => { if (e.target === popup) closeHelp(); };
+
+        // 🔄 Initialisation
         fetchUserBalance();
     </script>
 </body>
