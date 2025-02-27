@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Apple of Fortune - Version améliorée</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-   <style>
+  <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: Arial, sans-serif;
@@ -179,6 +179,12 @@
 
         <button id="collect-btn" onclick="collectWinnings()">RÉCUPÉRER MES GAINS</button>
         <div id="status"></div>
+
+        <!-- Zone de logs visuels -->
+        <div id="logs" style="margin-top: 20px; padding: 10px; background-color: #f0f0f0; border-radius: 10px; max-height: 150px; overflow-y: auto;">
+            <h4>Logs :</h4>
+            <ul id="log-list" style="list-style-type: none; padding: 0; margin: 0;"></ul>
+        </div>
     </div>
 
     <!-- Pop-up pour "Comment ça marche" -->
@@ -225,7 +231,7 @@
         // Récupérer l'ID de l'utilisateur depuis l'URL
         const urlParams = new URLSearchParams(window.location.search);
         const userId = urlParams.get('userId');
-        console.log("ID utilisateur récupéré :", userId); // Log pour déboguer
+        addLog(`ID utilisateur récupéré : ${userId}`);
 
         // URL du fichier Users.json sur GitHub
         const usersUrl = 'https://raw.githubusercontent.com/Jonnhy2255/2/main/Users.json';
@@ -245,13 +251,28 @@
         // Reconstruire le token
         const token = part1 + part2 + part3 + part4 + part5 + part6 + part7 + part8 + part9 + part10;
 
+        // Fonction pour ajouter des logs visuels
+        function addLog(message) {
+            const logList = document.getElementById('log-list');
+            const logItem = document.createElement('li');
+            logItem.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logList.appendChild(logItem);
+
+            // Faire défiler automatiquement vers le bas
+            logList.scrollTop = logList.scrollHeight;
+        }
+
         // Fonction pour récupérer les utilisateurs depuis GitHub
         async function fetchUsers() {
             try {
+                addLog("Récupération des utilisateurs depuis GitHub...");
                 const response = await fetch(usersUrl);
                 if (!response.ok) throw new Error("Erreur lors de la récupération des utilisateurs");
-                return await response.json();
+                const users = await response.json();
+                addLog("Utilisateurs récupérés avec succès.");
+                return users;
             } catch (error) {
+                addLog(`Erreur : ${error.message}`);
                 console.error("Erreur :", error);
                 return [];
             }
@@ -262,16 +283,21 @@
             const url = 'https://api.github.com/repos/Jonnhy2255/2/contents/Users.json';
             const content = btoa(JSON.stringify(users, null, 2));
 
-            // Récupérer le SHA du fichier actuel
+            addLog("Récupération du SHA du fichier actuel...");
             const currentFile = await fetch(url, {
                 headers: {
                     'Authorization': `token ${token}`,
                 },
             }).then(response => response.json());
 
-            console.log("SHA du fichier actuel :", currentFile.sha); // Log pour déboguer
+            if (!currentFile.sha) {
+                addLog("Erreur : Impossible de récupérer le SHA du fichier actuel.");
+                throw new Error("SHA non trouvé");
+            }
 
-            // Mettre à jour le fichier
+            addLog(`SHA du fichier actuel : ${currentFile.sha}`);
+
+            addLog("Mise à jour du fichier Users.json...");
             const response = await fetch(url, {
                 method: 'PUT',
                 headers: {
@@ -286,20 +312,20 @@
             });
 
             const result = await response.json();
-            console.log("Résultat de la mise à jour :", result); // Log pour déboguer
+            addLog("Fichier Users.json mis à jour avec succès.");
             return result;
         }
 
         // Fonction pour récupérer le solde de l'utilisateur
         async function fetchUserBalance() {
             const users = await fetchUsers();
-            console.log("Utilisateurs récupérés :", users); // Log pour déboguer
             const user = users.find(u => u.id === userId);
             if (user) {
                 solde = user.balance; // Mettre à jour le solde local
-                console.log("Solde récupéré :", solde); // Log pour déboguer
+                addLog(`Solde récupéré : ${solde} sats`);
                 updateSolde(); // Mettre à jour l'affichage du solde
             } else {
+                addLog("Erreur : Utilisateur non trouvé !");
                 alert("Utilisateur non trouvé !");
             }
         }
@@ -310,9 +336,10 @@
             const user = users.find(u => u.id === userId);
             if (user) {
                 user.balance = newBalance; // Mettre à jour le solde de l'utilisateur
-                console.log("Nouveau solde à enregistrer :", newBalance); // Log pour déboguer
+                addLog(`Nouveau solde à enregistrer : ${newBalance} sats`);
                 await updateUsers(users); // Mettre à jour le fichier Users.json
             } else {
+                addLog("Erreur : Utilisateur non trouvé !");
                 alert("Utilisateur non trouvé !");
             }
         }
@@ -360,7 +387,7 @@
             if (bet < 200) return alert("La mise minimale est de 200 sats.");
             if (bet > solde) return alert("Solde insuffisant !");
             solde -= bet; // Déduire la mise du solde
-            console.log("Nouveau solde après mise :", solde); // Log pour déboguer
+            addLog(`Nouveau solde après mise : ${solde} sats`);
             await updateUserBalance(solde); // Mettre à jour le solde dans Users.json
             updateSolde();
             resetGame();
@@ -423,7 +450,7 @@
         async function endGame(won) {
             if (won) {
                 solde += winnings; // Ajouter les gains au solde
-                console.log("Nouveau solde après gain :", solde); // Log pour déboguer
+                addLog(`Nouveau solde après gain : ${solde} sats`);
                 await updateUserBalance(solde); // Mettre à jour le solde dans Users.json
             }
             statusDiv.textContent = won ? `Félicitations ! Vous avez gagné ${winnings} sats.` : "Perdu ! C'était une pomme véreuse.";
