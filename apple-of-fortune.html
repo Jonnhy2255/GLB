@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Apple of Fortune - Version améliorée</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-     <style>
+  <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: Arial, sans-serif;
@@ -203,7 +203,7 @@
         </div>
     </div>
 
-    <script>
+<script>
         const levelsContainer = document.getElementById('levels');
         const statusDiv = document.getElementById('status');
         const collectBtn = document.getElementById('collect-btn');
@@ -457,10 +457,31 @@
             collectBtn.style.display = won && winnings > 0 ? 'block' : 'none';
         }
 
+        // Fonction pour afficher la pop-up de récupération des gains
+        function showCollectPopup(message) {
+            const collectPopup = document.getElementById('collect-popup');
+            const collectMessage = document.getElementById('collect-message');
+            collectMessage.textContent = message;
+            collectPopup.style.display = 'flex';
+        }
+
+        // Fonction pour fermer la pop-up de récupération des gains
+        function closeCollectPopup() {
+            const collectPopup = document.getElementById('collect-popup');
+            collectPopup.style.display = 'none';
+        }
+
+        // Fonction pour récupérer les gains
         async function collectWinnings() {
-            alert(`Vous avez récupéré ${winnings} sats.`);
-            resetGame();
-            statusDiv.textContent = "Faites une nouvelle mise pour rejouer.";
+            if (winnings > 0) {
+                solde += winnings; // Ajouter les gains à la balance
+                addLog(`Gains récupérés : ${winnings} sats. Nouveau solde : ${solde} sats`);
+                await updateUserBalance(solde); // Mettre à jour le solde dans Users.json
+                showCollectPopup(`Vous avez récupéré ${winnings} sats. Votre nouveau solde est de ${solde} sats.`);
+                resetGame();
+            } else {
+                showCollectPopup("Aucun gain à récupérer.");
+            }
         }
 
         // Initialiser le solde au chargement de la page
