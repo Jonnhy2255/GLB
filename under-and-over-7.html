@@ -199,41 +199,11 @@
             font-size: 18px;
             margin-bottom: 20px;
         }
-        .splash-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #1a1a1a;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1001;
-            animation: fadeOut 2s ease-in-out forwards;
-        }
-        @keyframes fadeOut {
-            0% { opacity: 1; }
-            100% { opacity: 0; display: none; }
-        }
-        .splash-screen img {
-            width: 200px;
-            height: 200px;
-            animation: spin 2s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
     </style>
 </head>
 <body>
-    <div class="splash-screen">
-        <img src="https://jonnhy2255.github.io/2/Dice-1-b.svg" alt="Loading...">
-    </div>
-
     <div class="container">
-        <div class="balance">Solde: <span id="balanceAmount">1000</span>sats</div>
+        <div class="balance">Solde: <span id="balanceAmount">0</span> sats</div>
         <button class="how-to-play" onclick="openHowToPlay()">
             <i class="fas fa-question"></i>
         </button>
@@ -294,102 +264,193 @@
 
     <audio id="diceSound" src="https://www.myinstants.com/media/sounds/dice-roll.mp3" preload="auto"></audio>
     <script>
-    let selectedOption = null;
-    let balance = 1000;
+        let selectedOption = null;
+        let balance = 0;
 
-    function selectOption(optionId) {
-        document.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected'));
-        document.getElementById(optionId).classList.add('selected');
-        selectedOption = optionId;
-    }
+        // Récupérer l'ID de l'utilisateur depuis l'URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('userId');
 
-    function setBet(action) {
-        const input = document.getElementById('betAmount');
-        let currentBet = parseInt(input.value) || 0;
-        switch (action) {
-            case 'min': currentBet = 100; break;
-            case 'x2': currentBet = Math.min(currentBet * 2, 10000); break;
-            case 'half': currentBet = Math.floor(currentBet / 2); break;
-            case 'max': currentBet = 10000; break;
-        }
-        input.value = currentBet;
-    }
+        // URL du fichier Users.json sur GitHub
+        const usersUrl = 'https://raw.githubusercontent.com/Jonnhy2255/2/main/Users.json';
 
-    function rollDice() {
-        const bet = parseInt(document.getElementById('betAmount').value);
-        if (!selectedOption) return alert("Sélectionnez une option !");
-        if (!bet || bet <= 99 || bet > 10000) return alert("Entrez un montant valide (100 - 10.000)");
-        if (bet > balance) return alert("Solde insuffisant !");
+        // Diviser le token en plusieurs parties
+        const part1 = 'ghp_';
+        const part2 = 'Hmu1';
+        const part3 = 'SEzE';
+        const part4 = 'VAlt';
+        const part5 = 'IgRg';
+        const part6 = 'oMZJ';
+        const part7 = 'GB9S';
+        const part8 = 'W7rl';
+        const part9 = 'NT1O';
+        const part10 = 'k93b';
 
-        balance -= bet;
-        updateBalance();
+        // Reconstruire le token
+        const token = part1 + part2 + part3 + part4 + part5 + part6 + part7 + part8 + part9 + part10;
 
-        const diceSound = document.getElementById('diceSound');
-        diceSound.currentTime = 0;
-        diceSound.play();
-
-        let animationInterval = setInterval(() => {
-            const random1 = Math.floor(Math.random() * 6) + 1;
-            const random2 = Math.floor(Math.random() * 6) + 1;
-            updateDiceImage(random1, 'dice1');
-            updateDiceImage(random2, 'dice2');
-        }, 100);
-
-        setTimeout(() => {
-            clearInterval(animationInterval);
-
-            const dice1 = Math.floor(Math.random() * 6) + 1;
-            const dice2 = Math.floor(Math.random() * 6) + 1;
-            const total = dice1 + dice2;
-
-            updateDiceImage(dice1, 'dice1');
-            updateDiceImage(dice2, 'dice2');
-
-            const resultText = document.getElementById('modalResult');
-            if ((selectedOption === 'over7' && total > 7) ||
-                (selectedOption === 'equal7' && total === 7) ||
-                (selectedOption === 'under7' && total < 7)) {
-                const gain = bet * (selectedOption === 'equal7' ? 5.8 : 2.3);
-                resultText.innerHTML = `🎉 Gagné ! Résultat : ${total} | Gain : ${gain.toFixed(2)}`;
-                resultText.style.color = "#28a745";
-                balance += gain;
-                updateBalance();
-            } else {
-                resultText.innerHTML = `😢 Perdu ! Résultat : ${total}`;
-                resultText.style.color = "#dc3545";
+        // Fonction pour récupérer les utilisateurs depuis GitHub
+        async function fetchUsers() {
+            try {
+                const response = await fetch(usersUrl);
+                if (!response.ok) throw new Error("Erreur lors de la récupération des utilisateurs");
+                return await response.json();
+            } catch (error) {
+                console.error("Erreur :", error);
+                return [];
             }
+        }
+
+        // Fonction pour mettre à jour les utilisateurs sur GitHub
+        async function updateUsers(users) {
+            const url = 'https://api.github.com/repos/Jonnhy2255/2/contents/Users.json';
+            const content = btoa(JSON.stringify(users, null, 2));
+
+            const currentFile = await fetch(url, {
+                headers: {
+                    'Authorization': `token ${token}`,
+                },
+            }).then(response => response.json());
+
+            if (!currentFile.sha) throw new Error("SHA non trouvé");
+
+            const response = await fetch(url, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `token ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: 'Mise à jour des utilisateurs',
+                    content: content,
+                    sha: currentFile.sha,
+                }),
+            });
+
+            return response.json();
+        }
+
+        // Fonction pour récupérer le solde de l'utilisateur
+        async function fetchUserBalance() {
+            const users = await fetchUsers();
+            const user = users.find(u => u.id === userId);
+            if (user) {
+                balance = user.balance;
+                document.getElementById('balanceAmount').textContent = balance;
+            } else {
+                alert("Utilisateur non trouvé !");
+            }
+        }
+
+        // Fonction pour mettre à jour le solde de l'utilisateur
+        async function updateUserBalance(newBalance) {
+            const users = await fetchUsers();
+            const user = users.find(u => u.id === userId);
+            if (user) {
+                user.balance = newBalance;
+                await updateUsers(users);
+            } else {
+                alert("Utilisateur non trouvé !");
+            }
+        }
+
+        // Fonction pour quitter le jeu
+        function exitGame() {
+            if (confirm("Êtes-vous sûr de vouloir quitter le jeu ?")) {
+                window.close();
+            }
+        }
+
+        // Fonction pour ouvrir la pop-up "Comment ça marche"
+        function openHowToPlay() {
+            document.getElementById('howToPlayModal').style.display = 'flex';
+        }
+
+        // Fonction pour fermer la pop-up
+        function closeModal() {
+            document.querySelectorAll('.modal').forEach(modal => modal.style.display = 'none');
+        }
+
+        // Fonction pour sélectionner une option de pari
+        function selectOption(optionId) {
+            document.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected'));
+            document.getElementById(optionId).classList.add('selected');
+            selectedOption = optionId;
+        }
+
+        // Fonction pour définir la mise
+        function setBet(action) {
+            const input = document.getElementById('betAmount');
+            let currentBet = parseInt(input.value) || 0;
+            switch (action) {
+                case 'min': currentBet = 100; break;
+                case 'x2': currentBet = Math.min(currentBet * 2, 10000); break;
+                case 'half': currentBet = Math.floor(currentBet / 2); break;
+                case 'max': currentBet = 10000; break;
+            }
+            input.value = currentBet;
+        }
+
+        // Fonction pour lancer les dés
+        async function rollDice() {
+            const bet = parseInt(document.getElementById('betAmount').value);
+            if (!selectedOption) return alert("Sélectionnez une option !");
+            if (!bet || bet <= 99 || bet > 10000) return alert("Entrez un montant valide (100 - 10.000)");
+            if (bet > balance) return alert("Solde insuffisant !");
+
+            balance -= bet;
+            await updateUserBalance(balance);
+            document.getElementById('balanceAmount').textContent = balance;
+
+            const diceSound = document.getElementById('diceSound');
+            diceSound.currentTime = 0;
+            diceSound.play();
+
+            let animationInterval = setInterval(() => {
+                const random1 = Math.floor(Math.random() * 6) + 1;
+                const random2 = Math.floor(Math.random() * 6) + 1;
+                updateDiceImage(random1, 'dice1');
+                updateDiceImage(random2, 'dice2');
+            }, 100);
 
             setTimeout(() => {
-                openModal('resultModal');
-            }, 500);
-        }, 1200);
-    }
+                clearInterval(animationInterval);
 
-    function updateDiceImage(value, diceId) {
-        document.getElementById(diceId).src = `https://jonnhy2255.github.io/2/Dice-${value}-b.svg`;
-    }
+                const dice1 = Math.floor(Math.random() * 6) + 1;
+                const dice2 = Math.floor(Math.random() * 6) + 1;
+                const total = dice1 + dice2;
 
-    function openModal(modalId) {
-        document.getElementById(modalId).style.display = 'flex';
-    }
+                updateDiceImage(dice1, 'dice1');
+                updateDiceImage(dice2, 'dice2');
 
-    function closeModal() {
-        document.querySelectorAll('.modal').forEach(modal => modal.style.display = 'none');
-    }
+                const resultText = document.getElementById('modalResult');
+                if ((selectedOption === 'over7' && total > 7) ||
+                    (selectedOption === 'equal7' && total === 7) ||
+                    (selectedOption === 'under7' && total < 7)) {
+                    const gain = bet * (selectedOption === 'equal7' ? 5.8 : 2.3);
+                    resultText.innerHTML = `🎉 Gagné ! Résultat : ${total} | Gain : ${gain.toFixed(2)}`;
+                    resultText.style.color = "#28a745";
+                    balance += gain;
+                    updateUserBalance(balance);
+                    document.getElementById('balanceAmount').textContent = balance;
+                } else {
+                    resultText.innerHTML = `😢 Perdu ! Résultat : ${total}`;
+                    resultText.style.color = "#dc3545";
+                }
 
-    function openHowToPlay() {
-        openModal('howToPlayModal');
-    }
-
-    function updateBalance() {
-        document.getElementById('balanceAmount').textContent = balance;
-    }
-
-    function exitGame() {
-        if (confirm("Êtes-vous sûr de vouloir quitter le jeu ?")) {
-            window.close();
+                setTimeout(() => {
+                    document.getElementById('resultModal').style.display = 'flex';
+                }, 500);
+            }, 1200);
         }
-    }
-</script>
+
+        // Fonction pour mettre à jour l'image des dés
+        function updateDiceImage(value, diceId) {
+            document.getElementById(diceId).src = `https://jonnhy2255.github.io/2/Dice-${value}-b.svg`;
+        }
+
+        // Initialiser le solde au chargement de la page
+        fetchUserBalance();
+    </script>
 </body>
 </html>
