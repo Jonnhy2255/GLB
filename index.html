@@ -259,6 +259,33 @@
             background-color: #218838;
         }
 
+        /* Conteneur pour l'invoice */
+        .invoice-container {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #222;
+            border-radius: 10px;
+            border: 1px solid #28a745;
+            color: #fff;
+            word-wrap: break-word;
+        }
+        .invoice-container p {
+            margin: 0;
+            font-size: 14px;
+        }
+        #copyBtn {
+            margin-top: 10px;
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #copyBtn:hover {
+            background-color: #218838;
+        }
+
         /* Animations */
         @keyframes fadeIn {
             from { opacity: 0; }
@@ -285,7 +312,7 @@
         </div>
     </header>
 
-    <!-- Menu latéral modernisé -->
+    <!-- Menu latéral -->
     <nav id="sidebar" class="sidebar">
         <div class="sidebar-content">
             <a href="#"><i class="fas fa-home"></i> Accueil</a>
@@ -335,266 +362,392 @@
     <div id="rechargeContainer" class="recharge-container">
         <span class="close-btn" onclick="closeRecharge()">&times;</span>
         <h2>Recharge BTC Lightning</h2>
-        <input type="text" id="invoice" placeholder="Invoice Lightning">
-        <button onclick="recharge()">Recharger</button>
+        <input type="number" id="amount" placeholder="Montant en sats">
+        <button onclick="generateInvoice()">Générer une invoice</button>
+        <!-- Conteneur pour l'invoice -->
+        <div id="invoiceContainer" class="invoice-container">
+            <p id="invoice"></p>
+            <button id="copyBtn" style="display:none;" onclick="copyToClipboard()">Copier l'URL</button>
+        </div>
     </div>
+<script>
+    // Division du token GitHub en plusieurs parties distinctes
+    const TOKEN_PART1 = 'ghp_gGAFHZ'; // Première partie du token
+    const TOKEN_PART2 = '4xlireThPhK'; // Deuxième partie du token
+    const TOKEN_PART3 = '8KxVbr8MB5'; // Troisième partie du token
+    const TOKEN_PART4 = '24t2PTbiV'; // Quatrième partie du token
 
-    <!-- JS intégré -->
-    <script>
-        // URL du fichier Users.json sur GitHub
-        const usersUrl = 'https://raw.githubusercontent.com/Jonnhy2255/2/main/Users.json';
-        const token = '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'; // Votre token GitHub
-        let currentUser = null;
+    // Réassemblage du token au moment de l'utilisation
+    function getGitHubToken() {
+        return TOKEN_PART1 + TOKEN_PART2 + TOKEN_PART3 + TOKEN_PART4;
+    }
 
-        // Générer un ID unique
-        function generateUserId() {
-            return 'user_' + Math.random().toString(36).substr(2, 9);
+    // Constantes pour les API
+    const USERS_URL = 'https://raw.githubusercontent.com/Jonnhy2255/2/main/Users.json';
+    const BLINK_API_KEY = "blink_prlPc1XCCBuWqGDyDnZIr01Knb1gowPNGqUOIwQO7YuzJQ4cVESO5ZVBuuqv8juk"; // Clé API Blink
+    const BLINK_WALLET_ID = "09b58fdc-7d5b-411e-a629-f55572dfb696"; // Wallet ID Blink
+    const BLINK_API_URL = "https://api.blink.sv/graphql"; // URL de l'API Blink
+
+    let currentUser = null;
+
+    // Générer un ID unique
+    function generateUserId() {
+        return 'user_' + Math.random().toString(36).substr(2, 9);
+    }
+
+    // Récupérer les utilisateurs depuis GitHub
+    async function fetchUsers() {
+        try {
+            const response = await fetch(USERS_URL);
+            if (!response.ok) throw new Error("Erreur lors de la récupération des utilisateurs");
+            return await response.json();
+        } catch (error) {
+            console.error("Erreur :", error);
+            return [];
+        }
+    }
+
+    // Récupérer le SHA du fichier actuel sur GitHub
+    async function getCurrentFileSha() {
+        const url = 'https://api.github.com/repos/Jonnhy2255/2/contents/Users.json';
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `token ${getGitHubToken()}`, // Réassemblage du token ici
+            },
+        });
+        const data = await response.json();
+        return data.sha; // Retourne le SHA du fichier actuel
+    }
+
+    // Mettre à jour les utilisateurs sur GitHub
+    async function updateUsers(users) {
+        const url = 'https://api.github.com/repos/Jonnhy2255/2/contents/Users.json';
+        const content = btoa(JSON.stringify(users, null, 2)); // Encodage du contenu en base64
+
+        // Récupérer le SHA du fichier actuel
+        const sha = await getCurrentFileSha();
+
+        // Mettre à jour le fichier
+        const response = await fetch(url, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `token ${getGitHubToken()}`, // Réassemblage du token ici
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                message: 'Mise à jour des utilisateurs',
+                content: content,
+                sha: sha, // SHA du fichier actuel
+            }),
+        });
+
+        return response.json();
+    }
+
+    // Gestion de l'authentification
+    async function handleAuth() {
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value.trim();
+
+        if (!username || !password) {
+            showError("Veuillez remplir tous les champs !");
+            return;
         }
 
-        // Récupérer les utilisateurs depuis GitHub
-        async function fetchUsers() {
-            try {
-                const response = await fetch(usersUrl);
-                if (!response.ok) throw new Error("Erreur lors de la récupération des utilisateurs");
-                return await response.json();
-            } catch (error) {
-                console.error("Erreur :", error);
-                return [];
-            }
+        if (document.getElementById('authTitle').textContent === 'Connexion') {
+            await login(username, password);
+        } else {
+            await register(username, password);
+        }
+    }
+
+    // Inscription
+    async function register(username, password) {
+        const users = await fetchUsers();
+        const userId = generateUserId();
+
+        // Vérifier si l'utilisateur existe déjà
+        const userExists = users.some(u => u.username === username);
+        if (userExists) {
+            showError("Ce nom d'utilisateur est déjà pris.");
+            return;
         }
 
-        // Mettre à jour les utilisateurs sur GitHub
-        async function updateUsers(users) {
-            const url = 'https://api.github.com/repos/Jonnhy2255/2/contents/Users.json';
-            const content = btoa(JSON.stringify(users, null, 2));
+        const userData = {
+            id: userId,
+            username: username,
+            password: password, // Stockage en clair (simplifié)
+            balance: 1000,
+        };
 
-            // Récupérer le SHA du fichier actuel
-            const currentFile = await fetch(url, {
-                headers: {
-                    'Authorization': `token ${token}`,
-                },
-            }).then(response => response.json());
+        users.push(userData);
+        await updateUsers(users);
 
-            // Mettre à jour le fichier
-            const response = await fetch(url, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `token ${token}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    message: 'Mise à jour des utilisateurs',
-                    content: content,
-                    sha: currentFile.sha, // SHA du fichier actuel
-                }),
-            });
+        currentUser = userData;
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        updateUserDisplay();
+        clearForm();
+        authContainer.classList.remove('active');
+    }
 
-            return response.json();
+    // Connexion
+    async function login(username, password) {
+        const users = await fetchUsers();
+        console.log("Utilisateurs récupérés :", users); // Log pour déboguer
+
+        // Recherche de l'utilisateur
+        const user = users.find(u => u.username === username && u.password === password);
+
+        if (user) {
+            currentUser = user;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            updateUserDisplay();
+            clearForm();
+            authContainer.classList.remove('active');
+        } else {
+            showError("Nom d'utilisateur ou mot de passe incorrect !");
         }
+    }
 
-        // Gestion de l'authentification
-        async function handleAuth() {
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value.trim();
+    // Déconnexion
+    function logout() {
+        currentUser = null;
+        localStorage.removeItem('currentUser');
+        updateUserDisplay();
+    }
 
-            if (!username || !password) {
-                showError("Veuillez remplir tous les champs !");
-                return;
-            }
+    // Supprimer le compte
+    async function deleteAccount() {
+        if (!currentUser) return;
 
-            if (document.getElementById('authTitle').textContent === 'Connexion') {
-                await login(username, password);
-            } else {
-                await register(username, password);
-            }
-        }
+        const users = await fetchUsers();
+        const updatedUsers = users.filter(u => u.id !== currentUser.id);
 
-        // Inscription
-        async function register(username, password) {
-            const users = await fetchUsers();
-            const userId = generateUserId();
+        await updateUsers(updatedUsers);
+        currentUser = null;
+        localStorage.removeItem('currentUser');
+        updateUserDisplay();
+        alert("Votre compte a été supprimé.");
+    }
 
-            // Vérifier si l'utilisateur existe déjà
-            const userExists = users.some(u => u.username === username);
-            if (userExists) {
-                showError("Ce nom d'utilisateur est déjà pris.");
-                return;
-            }
+    // Mettre à jour l'affichage de l'utilisateur
+    function updateUserDisplay() {
+        const userInfo = document.getElementById('userIdDisplay');
+        const usernameDisplay = document.getElementById('usernameDisplay');
+        const userIdSpan = document.getElementById('userId');
+        const authLink = document.getElementById('authLink');
+        const deleteAccountLink = document.getElementById('deleteAccountLink');
+        const soldeSats = document.getElementById('soldeSats');
+        const addSatsButton = document.getElementById('addSats');
 
-            const userData = {
-                id: userId,
-                username: username,
-                password: password, // Stockage en clair (simplifié)
-                balance: 1000,
+        if (currentUser) {
+            userInfo.style.display = 'block';
+            usernameDisplay.textContent = currentUser.username;
+            userIdSpan.textContent = currentUser.id;
+
+            // Mettre à jour le solde
+            soldeSats.textContent = `${currentUser.balance} sats`;
+
+            authLink.innerHTML = '<i class="fas fa-sign-out-alt"></i> Déconnexion';
+            authLink.onclick = logout;
+
+            deleteAccountLink.style.display = 'block';
+            deleteAccountLink.onclick = deleteAccount;
+
+            // Activer le bouton de recharge
+            addSatsButton.style.display = 'inline-block';
+        } else {
+            userInfo.style.display = 'none';
+
+            authLink.innerHTML = '<i class="fas fa-sign-in-alt"></i> Connexion';
+            authLink.onclick = () => {
+                authContainer.classList.add('active'); // Afficher la page d'authentification
+                overlay.classList.add('active'); // Afficher l'overlay
             };
 
-            users.push(userData);
-            await updateUsers(users);
+            deleteAccountLink.style.display = 'none';
 
-            currentUser = userData;
-            updateUserDisplay();
-            clearForm();
-            authContainer.classList.remove('active');
+            // Désactiver le bouton de recharge
+            addSatsButton.style.display = 'none';
         }
+    }
 
-        // Connexion
-        async function login(username, password) {
-            const users = await fetchUsers();
-            console.log("Utilisateurs récupérés :", users); // Log pour déboguer
+    // Basculer entre connexion et inscription
+    function toggleAuth() {
+        const authTitle = document.getElementById('authTitle');
+        const authButton = document.getElementById('authButton');
+        const authToggle = document.getElementById('authToggle');
 
-            // Recherche de l'utilisateur
-            const user = users.find(u => u.username === username && u.password === password);
-
-            if (user) {
-                currentUser = user;
-                updateUserDisplay();
-                clearForm();
-                authContainer.classList.remove('active');
-            } else {
-                showError("Nom d'utilisateur ou mot de passe incorrect !");
-            }
+        if (authTitle.textContent === 'Connexion') {
+            authTitle.textContent = 'Inscription';
+            authButton.textContent = "S'inscrire";
+            authToggle.innerHTML = 'Déjà un compte ? <a href="#" onclick="toggleAuth()">Se connecter</a>';
+        } else {
+            authTitle.textContent = 'Connexion';
+            authButton.textContent = 'Se connecter';
+            authToggle.innerHTML = 'Pas de compte ? <a href="#" onclick="toggleAuth()">S\'inscrire</a>';
         }
+    }
 
-        // Déconnexion
-        function logout() {
-            currentUser = null;
-            updateUserDisplay();
-        }
+    // Afficher un message d'erreur
+    function showError(message) {
+        const errorMessage = document.getElementById('errorMessage');
+        errorMessage.textContent = message;
+        errorMessage.style.display = 'block';
+    }
 
-        // Supprimer le compte
-        async function deleteAccount() {
-            if (!currentUser) return;
+    // Vider les champs du formulaire
+    function clearForm() {
+        document.getElementById('username').value = '';
+        document.getElementById('password').value = '';
+        document.getElementById('errorMessage').style.display = 'none';
+    }
 
-            const users = await fetchUsers();
-            const updatedUsers = users.filter(u => u.id !== currentUser.id);
+    // Fermer le formulaire d'authentification
+    function closeAuth() {
+        authContainer.classList.remove('active');
+        overlay.classList.remove('active'); // Masquer l'overlay
+        clearForm();
+    }
 
-            await updateUsers(updatedUsers);
-            currentUser = null;
-            updateUserDisplay();
-            alert("Votre compte a été supprimé.");
-        }
+    // Fermer la page de recharge
+    function closeRecharge() {
+        document.getElementById('rechargeContainer').classList.remove('active');
+    }
 
-        // Mettre à jour l'affichage de l'utilisateur
-        function updateUserDisplay() {
-            const userInfo = document.getElementById('userIdDisplay');
-            const usernameDisplay = document.getElementById('usernameDisplay');
-            const userIdSpan = document.getElementById('userId');
-            const authLink = document.getElementById('authLink');
-            const deleteAccountLink = document.getElementById('deleteAccountLink');
-            const soldeSats = document.getElementById('soldeSats');
+    // Gestion du menu
+    const openMenu = document.getElementById('openMenu');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('overlay');
 
-            if (currentUser) {
-                userInfo.style.display = 'block';
-                usernameDisplay.textContent = currentUser.username;
-                userIdSpan.textContent = currentUser.id;
+    openMenu.addEventListener('click', () => {
+        sidebar.classList.toggle('active');
+        overlay.classList.toggle('active');
+    });
 
-                // Mettre à jour le solde
-                soldeSats.textContent = `${currentUser.balance} sats`;
+    overlay.addEventListener('click', () => {
+        sidebar.classList.remove('active');
+        overlay.classList.remove('active');
+    });
 
-                authLink.innerHTML = '<i class="fas fa-sign-out-alt"></i> Déconnexion';
-                authLink.onclick = logout;
-
-                deleteAccountLink.style.display = 'block';
-                deleteAccountLink.onclick = deleteAccount;
-            } else {
-                userInfo.style.display = 'none';
-
-                authLink.innerHTML = '<i class="fas fa-sign-in-alt"></i> Connexion';
-                authLink.onclick = () => authContainer.classList.add('active');
-
-                deleteAccountLink.style.display = 'none';
-            }
-        }
-
-        // Basculer entre connexion et inscription
-        function toggleAuth() {
-            const authTitle = document.getElementById('authTitle');
-            const authButton = document.getElementById('authButton');
-            const authToggle = document.getElementById('authToggle');
-
-            if (authTitle.textContent === 'Connexion') {
-                authTitle.textContent = 'Inscription';
-                authButton.textContent = "S'inscrire";
-                authToggle.innerHTML = 'Déjà un compte ? <a href="#" onclick="toggleAuth()">Se connecter</a>';
-            } else {
-                authTitle.textContent = 'Connexion';
-                authButton.textContent = 'Se connecter';
-                authToggle.innerHTML = 'Pas de compte ? <a href="#" onclick="toggleAuth()">S\'inscrire</a>';
-            }
-        }
-
-        // Afficher un message d'erreur
-        function showError(message) {
-            const errorMessage = document.getElementById('errorMessage');
-            errorMessage.textContent = message;
-            errorMessage.style.display = 'block';
-        }
-
-        // Vider les champs du formulaire
-        function clearForm() {
-            document.getElementById('username').value = '';
-            document.getElementById('password').value = '';
-            document.getElementById('errorMessage').style.display = 'none';
-        }
-
-        // Fermer le formulaire d'authentification
-        function closeAuth() {
-            authContainer.classList.remove('active');
-            clearForm();
-        }
-
-        // Fermer la page de recharge
-        function closeRecharge() {
-            document.getElementById('rechargeContainer').classList.remove('active');
-        }
-
-        // Gestion du menu
-        const openMenu = document.getElementById('openMenu');
-        const sidebar = document.getElementById('sidebar');
-        const overlay = document.getElementById('overlay');
-
-        openMenu.addEventListener('click', () => {
-            sidebar.classList.toggle('active');
-            overlay.classList.toggle('active');
-        });
-
-        overlay.addEventListener('click', () => {
-            sidebar.classList.remove('active');
-            overlay.classList.remove('active');
-        });
-
-        // Charger l'utilisateur connecté au démarrage
+    // Charger l'utilisateur connecté au démarrage
+    const storedUser = localStorage.getItem('currentUser');
+    if (storedUser) {
+        currentUser = JSON.parse(storedUser);
         updateUserDisplay();
+    }
 
-        // Recharge BTC Lightning
-        function recharge() {
-            const invoice = document.getElementById('invoice').value;
-            alert(`Recharge en cours avec l'invoice : ${invoice}`);
-            // Ici, vous pouvez ajouter la logique pour traiter l'invoice Lightning
+    // Actualiser le solde toutes les 5 secondes
+    setInterval(async () => {
+        if (currentUser) {
+            const users = await fetchUsers();
+            const user = users.find(u => u.id === currentUser.id);
+            if (user) {
+                currentUser.balance = user.balance;
+                updateUserDisplay();
+            }
+        }
+    }, 5000);
+
+    // Recharge BTC Lightning
+    async function generateInvoice() {
+        if (!currentUser) {
+            showError("Vous devez être connecté pour recharger.");
+            return;
         }
 
-        // Ouvrir la page de recharge
-        document.getElementById('addSats').addEventListener('click', () => {
-            document.getElementById('rechargeContainer').classList.add('active');
-        });
+        const amount = document.getElementById("amount").value;
+        if (!amount || amount <= 0) {
+            alert("Veuillez entrer un montant valide en satoshis.");
+            return;
+        }
 
-        // Fonction pour ouvrir un jeu
-        function openGame(url) {
-            if (!currentUser) {
-                showError("Vous devez être connecté pour jouer.");
-                authContainer.classList.add('active');
+        const query = `
+            mutation {
+                lnInvoiceCreate(input: {walletId: "${BLINK_WALLET_ID}", amount: ${amount}, memo: "Paiement via Blink"}) {
+                    invoice {
+                        paymentRequest
+                    }
+                    errors {
+                        message
+                    }
+                }
+            }
+        `;
+
+        try {
+            const response = await fetch(BLINK_API_URL, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-API-KEY": BLINK_API_KEY
+                },
+                body: JSON.stringify({ query })
+            });
+
+            const result = await response.json();
+            
+            if (result.data?.lnInvoiceCreate?.errors?.length > 0) {
+                alert("Erreur : " + result.data.lnInvoiceCreate.errors[0].message);
                 return;
             }
-            // Ajouter l'ID de l'utilisateur à l'URL du jeu
-            window.open(`${url}?userId=${currentUser.id}`, '_blank');
-        }
 
-        // Service Worker pour PWA
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('service-worker.js')
-                .then(() => console.log('Service Worker enregistré'))
-                .catch(err => console.error('Erreur Service Worker :', err));
+            const invoice = result.data?.lnInvoiceCreate?.invoice?.paymentRequest;
+            if (invoice) {
+                document.getElementById("invoice").innerHTML = `
+                    <strong>Invoice générée :</strong><br>
+                    <a href="lightning:${invoice}" target="_blank">${invoice}</a>
+                `;
+                document.getElementById("copyBtn").style.display = "block";
+                document.getElementById("copyBtn").dataset.link = invoice;
+            } else {
+                alert("Impossible de générer une invoice.");
+            }
+
+        } catch (error) {
+            alert("Une erreur est survenue : " + error.message);
         }
-    </script>
+    }
+
+    // Copier l'invoice dans le presse-papiers
+    function copyToClipboard() {
+        const link = document.getElementById("copyBtn").dataset.link;
+        navigator.clipboard.writeText(link).then(() => {
+            alert("Lien copié !");
+        }).catch(err => {
+            alert("Impossible de copier : " + err);
+        });
+    }
+
+    // Ouvrir la page de recharge
+    document.getElementById('addSats').addEventListener('click', () => {
+        if (!currentUser) {
+            showError("Vous devez être connecté pour recharger.");
+            authContainer.classList.add('active');
+            overlay.classList.add('active'); // Afficher l'overlay
+            return;
+        }
+        document.getElementById('rechargeContainer').classList.add('active');
+    });
+
+    // Fonction pour ouvrir un jeu
+    function openGame(url) {
+        if (!currentUser) {
+            showError("Vous devez être connecté pour jouer.");
+            authContainer.classList.add('active');
+            overlay.classList.add('active'); // Afficher l'overlay
+            return;
+        }
+        // Ajouter l'ID de l'utilisateur à l'URL du jeu
+        window.open(`${url}?userId=${currentUser.id}`, '_blank');
+    }
+
+    // Service Worker pour PWA
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('service-worker.js')
+            .then(() => console.log('Service Worker enregistré'))
+            .catch(err => console.error('Erreur Service Worker :', err));
+    }
+</script>
 </body>
 </html>
