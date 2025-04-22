@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NeuroSphere AI - Chatbot Simple</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.18.0/dist/tf.min.js"></script>
+    <style>
+        /* Mode clair/sombre */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f7fa;
+            --text-primary: #2d2d2d;
+            --text-secondary: #555555;
+            --accent: #5D5CDE;
+            --accent-hover: #4a49b1;
+            --border: #e2e8f0;
+            --shadow: rgba(0, 0, 0, 0.1);
+            --chat-user: #e9f3ff;
+            --chat-bot: #f0f0fd;
+        }
+        
+        .dark {
+            --bg-primary: #181818;
+            --bg-secondary: #1e1e24;
+            --text-primary: #e1e1e1;
+            --text-secondary: #a0a0a0;
+            --border: #2d2d4a;
+            --shadow: rgba(0, 0, 0, 0.3);
+            --chat-user: #2a394b;
+            --chat-bot: #272744;
+        }
+        
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        
+        .app-container {
+            max-width: 1024px;
+            margin: 0 auto;
+            padding: 1rem;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        button {
+            padding: 0.5rem 1rem;
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 0.25rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.15s;
+        }
+        
+        button:hover {
+            background-color: var(--accent-hover);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .upload-btn {
+            background-color: #38a169;
+        }
+        
+        .upload-btn:hover {
+            background-color: #2f855a;
+        }
+        
+        textarea {
+            width: 100%;
+            min-height: 60px;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border);
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            resize: vertical;
+            font-size: 1rem;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(93, 92, 222, 0.2);
+        }
+        
+        .progress-bar {
+            height: 8px;
+            background-color: var(--bg-primary);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background-color: var(--accent);
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+        
+        .toggle-container {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            display: flex;
+            align-items: center;
+        }
+        
+        .toggle-label {
+            margin-right: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 3rem;
+            height: 1.5rem;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--border);
+            border-radius: 1.5rem;
+            transition: 0.4s;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 1.25rem;
+            width: 1.25rem;
+            left: 0.125rem;
+            bottom: 0.125rem;
+            background-color: white;
+            border-radius: 50%;
+            transition: 0.4s;
+        }
+        
+        input:checked + .toggle-slider {
+            background-color: var(--accent);
+        }
+        
+        input:checked + .toggle-slider:before {
+            transform: translateX(1.5rem);
+        }
+        
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            background-color: var(--bg-secondary);
+            box-shadow: 0 4px 6px var(--shadow);
+        }
+        
+        .chat-message {
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            max-width: 80%;
+        }
+        
+        .user-message {
+            background-color: var(--chat-user);
+            margin-left: auto;
+            border-bottom-right-radius: 0;
+        }
+        
+        .bot-message {
+            background-color: var(--chat-bot);
+            margin-right: auto;
+            border-bottom-left-radius: 0;
+        }
+        
+        .chat-input-container {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .chat-input {
+            flex: 1;
+        }
+        
+        .code-block {
+            background-color: rgba(0, 0, 0, 0.05);
+            border-radius: 0.25rem;
+            padding: 0.5rem;
+            font-family: monospace;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            margin: 0.5rem 0;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            height: 10px;
+            width: 10px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+        
+        .status-ready {
+            background-color: #48bb78;
+        }
+        
+        .status-loading {
+            background-color: #ecc94b;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .status-error {
+            background-color: #f56565;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+        
+        @keyframes gradientAnimation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .animated-gradient {
+            background: linear-gradient(45deg, #5D5CDE, #4a49b1, #7979f1);
+            background-size: 200% 200%;
+            animation: gradientAnimation 3s ease infinite;
+            color: white;
+            border-radius: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div class="toggle-container">
+        <span class="toggle-label">Mode sombre</span>
+        <label class="toggle-switch">
+            <input type="checkbox" id="dark-mode-toggle">
+            <span class="toggle-slider"></span>
+        </label>
+    </div>
+
+    <div class="app-container">
+        <h1 class="text-3xl font-bold mb-2 text-center">NeuroSphere AI</h1>
+        <h2 class="text-xl text-center mb-4 text-gray-600 dark:text-gray-400">Assistant d'IA Simple</h2>
+        
+        <div class="flex items-center mb-4">
+            <div class="status-indicator status-loading" id="status-indicator"></div>
+            <span id="status-text">Initialisation du système...</span>
+        </div>
+        
+        <div class="chat-container" id="chat-container">
+            <!-- Messages added here -->
+        </div>
+        
+        <div class="chat-input-container">
+            <div class="upload-container mr-2">
+                <button id="upload-btn" class="upload-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    Fichier
+                </button>
+                <input type="file" id="file-input" class="hidden" accept=".txt,.json">
+            </div>
+            <div class="chat-input flex-1">
+                <textarea id="user-input" placeholder="Entrez votre message ou collez une URL de données ici..." class="w-full"></textarea>
+            </div>
+            <button id="send-btn" class="ml-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Dark mode handling
+        function setDarkMode(isDark) {
+            if (isDark) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+            localStorage.setItem('darkMode', isDark ? 'true' : 'false');
+        }
+        
+        const savedDarkMode = localStorage.getItem('darkMode');
+        if (savedDarkMode === 'true') {
+            setDarkMode(true);
+            document.getElementById('dark-mode-toggle').checked = true;
+        } else if (savedDarkMode === 'false') {
+            setDarkMode(false);
+        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            setDarkMode(true);
+            document.getElementById('dark-mode-toggle').checked = true;
+        }
+        
+        document.getElementById('dark-mode-toggle').addEventListener('change', function() {
+            setDarkMode(this.checked);
+        });
+
+        /**
+         * Simple Tokenizer for text processing
+         */
+        class SimpleTokenizer {
+            constructor() {
+                this.vocab = new Map(); // token -> id
+                this.idToToken = new Map(); // id -> token (reverse mapping)
+                this.nextId = 1; // Start IDs at 1, reserve 0 for padding
+                
+                // Add special tokens
+                this.addToken('<PAD>'); // Padding token
+                this.addToken('<UNK>'); // Unknown token
+            }
+            
+            addToken(token) {
+                if (!this.vocab.has(token)) {
+                    this.vocab.set(token, this.nextId);
+                    this.idToToken.set(this.nextId, token);
+                    this.nextId++;
+                }
+                return this.vocab.get(token);
+            }
+            
+            // Simple tokenization by character or word
+            tokenize(text, byChar = true) {
+                if (byChar) {
+                    return Array.from(text);
+                } else {
+                    return text.split(/\s+/).filter(token => token.length > 0);
+                }
+            }
+            
+            // Convert text to token IDs
+            encode(text, byChar = true) {
+                const tokens = this.tokenize(text, byChar);
+                return tokens.map(token => {
+                    if (this.vocab.has(token)) {
+                        return this.vocab.get(token);
+                    } else {
+                        // Add unknown tokens to vocabulary
+                        return this.addToken(token);
+                    }
+                });
+            }
+            
+            // Convert token IDs back to text
+            decode(ids) {
+                return ids.map(id => {
+                    if (this.idToToken.has(id)) {
+                        return this.idToToken.get(id);
+                    } else {
+                        return this.idToToken.get(2); // <UNK> token
+                    }
+                }).join('');
+            }
+            
+            // Get vocabulary size
+            getVocabSize() {
+                return this.vocab.size;
+            }
+            
+            // Prepare training data from text
+            prepareTrainingData(text, sequenceLength = 64, byChar = true) {
+                const ids = this.encode(text, byChar);
+                
+                if (ids.length < sequenceLength + 1) {
+                    return {
+                        samples: [],
+                        error: "Le texte est trop court pour générer des séquences d'entraînement."
+                    };
+                }
+                
+                const samples = [];
+                
+                // Create input/target pairs for language modeling
+                for (let i = 0; i <= ids.length - sequenceLength - 1; i++) {
+                    const input = ids.slice(i, i + sequenceLength);
+                    const target = ids.slice(i + 1, i + sequenceLength + 1);
+                    
+                    samples.push({
+                        input, 
+                        target
+                    });
+                    
+                    // Limit number of samples for browser memory
+                    if (samples.length >= 500) break;
+                }
+                
+                return {
+                    samples,
+                    totalTokens: ids.length,
+                    uniqueTokens: new Set(ids).size,
+                    sequenceLength
+                };
+            }
+        }
+        
+        /**
+         * Simple RNN Language Model using TensorFlow.js
+         */
+        class SimpleLanguageModel {
+            constructor(config) {
+                this.config = {
+                    vocabSize: config.vocabSize || 1000,
+                    embeddingDim: config.embeddingDim || 32,
+                    hiddenUnits: config.hiddenUnits || 64,
+                    sequenceLength: config.sequenceLength || 64
+                };
+                
+                this.model = null;
+                this.isTraining = false;
+            }
+            
+            // Create a simple RNN model
+            createModel() {
+                if (!tf) {
+                    throw new Error("TensorFlow.js is not loaded");
+                }
+                
+                if (this.model) {
+                    this.model.dispose();
+                }
+                
+                // Get configuration
+                const { vocabSize, embeddingDim, hiddenUnits, sequenceLength } = this.config;
+                
+                // Create a sequential model
+                this.model = tf.sequential();
+                
+                // Add embedding layer
+                this.model.add(tf.layers.embedding({
+                    inputDim: vocabSize,
+                    outputDim: embeddingDim,
+                    inputLength: sequenceLength
+                }));
+                
+                // Add GRU layer (simpler than LSTM, works well for text)
+                this.model.add(tf.layers.gru({
+                    units: hiddenUnits,
+                    returnSequences: true
+                }));
+                
+                // Add output layer
+                this.model.add(tf.layers.dense({
+                    units: vocabSize,
+                    activation: 'softmax'
+                }));
+                
+                // Compile the model
+                this.model.compile({
+                    optimizer: 'adam',
+                    loss: 'categoricalCrossentropy',
+                    metrics: ['accuracy']
+                });
+                
+                return this.model;
+            }
+            
+            // Prepare targets for training (one-hot encoding)
+            _prepareOneHotTargets(targetIds) {
+                return targetIds.map(sequence => {
+                    return sequence.map(tokenId => {
+                        // Create one-hot vector for each token
+                        const oneHot = new Array(this.config.vocabSize).fill(0);
+                        oneHot[tokenId] = 1;
+                        return oneHot;
+                    });
+                });
+            }
+            
+            // Train the model on prepared data
+            async trainModel(samples, batchSize, epochs, callbacks) {
+                if (!this.model) {
+                    throw new Error("Model has not been created");
+                }
+                
+                // Prepare training data
+                const inputs = [];
+                const targets = [];
+                
+                for (const sample of samples) {
+                    inputs.push(sample.input);
+                    targets.push(sample.target);
+                }
+                
+                // Convert to tensors
+                const inputTensor = tf.tensor2d(inputs, [inputs.length, this.config.sequenceLength], 'int32');
+                
+                // Convert targets to one-hot encoded format
+                const oneHotTargets = this._prepareOneHotTargets(targets);
+                const targetTensor = tf.tensor3d(oneHotTargets, 
+                    [targets.length, this.config.sequenceLength, this.config.vocabSize], 
+                    'float32'
+                );
+                
+                this.isTraining = true;
+                
+                try {
+                    // Train the model
+                    const result = await this.model.fit(
+                        inputTensor, 
+                        targetTensor, 
+                        {
+                            batchSize,
+                            epochs,
+                            callbacks,
+                            shuffle: true
+                        }
+                    );
+                    
+                    return result;
+                } catch (error) {
+                    console.error("Training error:", error);
+                    throw error;
+                } finally {
+                    this.isTraining = false;
+                    inputTensor.dispose();
+                    targetTensor.dispose();
+                }
+            }
+            
+            // Stop training
+            stopTraining() {
+                if (this.isTraining && this.model) {
+                    this.model.stopTraining = true;
+                }
+            }
+            
+            // Generate text from a prompt
+            async generateText(prompt, tokenizer, maxTokens = 50, temperature = 0.8) {
+                if (!this.model) {
+                    throw new Error("Model has not been created");
+                }
+                
+                // Tokenize the prompt
+                const inputIds = tokenizer.encode(prompt);
+                const generationSteps = [];
+                
+                // Ensure input has the right length
+                let currentIds;
+                if (inputIds.length >= this.config.sequenceLength) {
+                    // Truncate to max sequence length
+                    currentIds = inputIds.slice(-this.config.sequenceLength);
+                } else {
+                    // Pad with zeros at the beginning
+                    const padding = Array(this.config.sequenceLength - inputIds.length).fill(0);
+                    currentIds = [...padding, ...inputIds];
+                }
+                
+                let generatedTokens = [];
+                
+                // Auto-regressive generation
+                for (let i = 0; i < maxTokens; i++) {
+                    // Convert to tensor
+                    const inputTensor = tf.tensor2d([currentIds], [1, this.config.sequenceLength], 'int32');
+                    
+                    // Get model prediction
+                    const predictions = this.model.predict(inputTensor);
+                    
+                    // Get prediction for the next token (last position in sequence)
+                    const logits = predictions.arraySync()[0][this.config.sequenceLength - 1];
+                    
+                    // Apply temperature scaling
+                    const scaledLogits = logits.map(l => l / temperature);
+                    
+                    // Convert to probabilities
+                    const probs = tf.softmax(tf.tensor1d(scaledLogits)).arraySync();
+                    
+                    // Sample from the probability distribution
+                    const nextToken = this._sampleFromDistribution(probs);
+                    
+                    // Add to generated tokens
+                    generatedTokens.push(nextToken);
+                    
+                    // Record this generation step
+                    generationSteps.push({
+                        tokenId: nextToken,
+                        token: tokenizer.decode([nextToken]),
+                        probability: probs[nextToken]
+                    });
+                    
+                    // Update current IDs by removing first token and adding new one
+                    currentIds = [...currentIds.slice(1), nextToken];
+                    
+                    // Clean up tensors
+                    inputTensor.dispose();
+                    predictions.dispose();
+                }
+                
+                // Get complete generated text
+                const generatedText = tokenizer.decode(generatedTokens);
+                
+                return {
+                    text: generatedText,
+                    steps: generationSteps
+                };
+            }
+            
+            // Sample a token ID from a probability distribution
+            _sampleFromDistribution(probs) {
+                const rand = Math.random();
+                let cumSum = 0;
+                
+                for (let i = 0; i < probs.length; i++) {
+                    cumSum += probs[i];
+                    if (rand < cumSum) return i;
+                }
+                
+                // Fallback to most probable token
+                return probs.indexOf(Math.max(...probs));
+            }
+        }
+
+        // Main chatbot class
+        class ChatBot {
+            constructor() {
+                this.tokenizer = new SimpleTokenizer();
+                this.model = null;
+                this.modelConfig = {
+                    vocabSize: 1000,
+                    embeddingDim: 32,
+                    hiddenUnits: 64,
+                    sequenceLength: 64
+                };
+                this.trainingData = null;
+                this.trainingConfig = {
+                    batchSize: 16,
+                    epochs: 5
+                };
+                this.chatContainer = document.getElementById('chat-container');
+                this.userInput = document.getElementById('user-input');
+                this.sendBtn = document.getElementById('send-btn');
+                this.uploadBtn = document.getElementById('upload-btn');
+                this.fileInput = document.getElementById('file-input');
+                this.statusIndicator = document.getElementById('status-indicator');
+                this.statusText = document.getElementById('status-text');
+                
+                this.setupEventListeners();
+                this.initialize();
+            }
+            
+            // Initialize the chatbot
+            async initialize() {
+                this.updateStatus('loading', 'Initialisation du système...');
+                
+                // Add welcome message
+                this.addBotMessage(`👋 Bonjour ! Je suis NeuroSphere AI, un assistant simple pour les modèles de langage.
+
+Je peux vous aider à :
+- Traiter vos données textuelles
+- Créer et entraîner un modèle simple
+- Générer du texte avec le modèle entraîné
+
+Pour commencer, téléchargez un fichier texte ou envoyez-moi un message avec votre texte.`);
+                
+                this.updateStatus('ready', 'Prêt à vous aider !');
+            }
+            
+            // Set up event listeners
+            setupEventListeners() {
+                // Send button
+                this.sendBtn.addEventListener('click', () => this.handleUserInput());
+                
+                // Enter key to send
+                this.userInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        this.handleUserInput();
+                    }
+                });
+                
+                // Upload button
+                this.uploadBtn.addEventListener('click', () => {
+                    this.fileInput.click();
+                });
+                
+                // File upload handler
+                this.fileInput.addEventListener('change', (e) => {
+                    if (e.target.files.length > 0) {
+                        this.handleFileUpload(e.target.files[0]);
+                    }
+                });
+            }
+            
+            // Update status indicator
+            updateStatus(status, text) {
+                this.statusIndicator.className = 'status-indicator';
+                if (status === 'loading') {
+                    this.statusIndicator.classList.add('status-loading');
+                } else if (status === 'ready') {
+                    this.statusIndicator.classList.add('status-ready');
+                } else if (status === 'error') {
+                    this.statusIndicator.classList.add('status-error');
+                }
+                
+                this.statusText.textContent = text;
+            }
+            
+            // Handle user input
+            async handleUserInput() {
+                const text = this.userInput.value.trim();
+                if (!text) return;
+                
+                // Show user message
+                this.addUserMessage(text);
+                this.userInput.value = '';
+                
+                // Update status
+                this.updateStatus('loading', 'Traitement de votre message...');
+                
+                // Process text as training data if it's long enough
+                if (text.length > 500) {
+                    await this.processTrainingData(text);
+                } else if (text.toLowerCase().includes('génér') || text.toLowerCase().includes('gener')) {
+                    await this.handleGeneration(text);
+                } else {
+                    this.addBotMessage(`Votre message n'est pas assez long pour entraîner un modèle. Vous pouvez :
+                    
+1. Télécharger un fichier texte plus long avec le bouton 📎
+2. Entrer un texte plus long (plus de 500 caractères)
+3. Me demander de générer du texte (si un modèle est déjà entraîné)`);
+                }
+                
+                this.updateStatus('ready', 'Prêt à vous aider !');
+            }
+            
+            // Handle file upload
+            async handleFileUpload(file) {
+                this.updateStatus('loading', `Lecture du fichier: ${file.name}...`);
+                
+                this.addUserMessage(`J'ai téléchargé un fichier: ${file.name} (${(file.size / 1024).toFixed(1)} Ko)`);
+                
+                try {
+                    // Read file content
+                    const content = await this.readFileContent(file);
+                    
+                    this.addBotMessage(`✅ Fichier chargé avec succès! ${content.length} caractères lus.`);
+                    
+                    // Process content as training data
+                    await this.processTrainingData(content);
+                    
+                    this.updateStatus('ready', 'Prêt à vous aider !');
+                } catch (error) {
+                    console.error('Error reading file:', error);
+                    this.updateStatus('error', 'Erreur lors de la lecture du fichier');
+                    this.addBotMessage(`⚠️ Désolé, une erreur s'est produite: ${error.message}`);
+                }
+            }
+            
+            // Read file content
+            readFileContent(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    
+                    reader.onload = (e) => {
+                        resolve(e.target.result);
+                    };
+                    
+                    reader.onerror = (e) => {
+                        reject(new Error('Erreur lors de la lecture du fichier'));
+                    };
+                    
+                    reader.readAsText(file);
+                });
+            }
+            
+            // Process text as training data
+            async processTrainingData(text) {
+                this.addBotMessage(`📝 Préparation du contenu pour l'entraînement...`);
+                
+                try {
+                    // Tokenize text
+                    this.updateStatus('loading', 'Tokenisation du texte...');
+                    
+                    // Determine if we should tokenize by character or word based on text length
+                    // For very short texts, character-level tokenization works better
+                    const tokenizeByChar = text.length < 2000;
+                    
+                    const trainingData = this.tokenizer.prepareTrainingData(
+                        text, 
+                        this.modelConfig.sequenceLength,
+                        tokenizeByChar
+                    );
+                    
+                    if (trainingData.error) {
+                        this.addBotMessage(`⚠️ ${trainingData.error}`);
+                        return;
+                    }
+                    
+                    // Save training data
+                    this.trainingData = trainingData;
+                    
+                    // Update vocab size in model config
+                    this.modelConfig.vocabSize = Math.max(1000, this.tokenizer.getVocabSize() + 100);
+                    
+                    this.addBotMessage(`✅ Données préparées avec succès !
+                    
+📊 Statistiques :
+- Nombre total de tokens : ${trainingData.totalTokens}
+- Tokens uniques : ${trainingData.uniqueTokens}
+- Nombre de séquences : ${trainingData.samples.length}
+- Longueur de séquence : ${trainingData.sequenceLength}
+- Tokenisation par : ${tokenizeByChar ? 'caractère' : 'mot'}
+
+Je vais maintenant créer et entraîner un modèle simple...`);
+                    
+                    // Create model
+                    this.updateStatus('loading', 'Création du modèle...');
+                    
+                    // Create the model
+                    this.model = new SimpleLanguageModel(this.modelConfig);
+                    this.model.createModel();
+                    
+                    this.addBotMessage(`✅ Modèle créé avec succès !
+
+⚙️ Configuration du modèle :
+- Taille du vocabulaire : ${this.modelConfig.vocabSize}
+- Dimension d'embedding : ${this.modelConfig.embeddingDim}
+- Unités cachées : ${this.modelConfig.hiddenUnits}
+- Longueur de séquence : ${this.modelConfig.sequenceLength}
+
+🔄 Démarrage de l'entraînement...`);
+                    
+                    // Start training
+                    this.updateStatus('loading', 'Entraînement en cours...');
+                    
+                    // Create element for training updates
+                    const trainingStatusId = 'training-status-' + Date.now();
+                    this.addBotMessage(`<div id="${trainingStatusId}" class="training-status">
+                        <p class="animated-gradient">⏳ Entraînement du modèle en cours...</p>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 0%"></div>
+                        </div>
+                        <p>Initialisation...</p>
+                    </div>`);
+                    
+                    // Train the model
+                    try {
+                        await this.model.trainModel(
+                            this.trainingData.samples, 
+                            this.trainingConfig.batchSize, 
+                            this.trainingConfig.epochs, 
+                            {
+                                onEpochBegin: (epoch) => {
+                                    const statusElement = document.getElementById(trainingStatusId);
+                                    if (!statusElement) return;
+                                    
+                                    statusElement.innerHTML = `
+                                        <p class="animated-gradient">⏳ Époque ${epoch + 1}/${this.trainingConfig.epochs} en cours...</p>
+                                        <div class="progress-bar">
+                                            <div class="progress-fill" style="width: 0%"></div>
+                                        </div>
+                                        <p>Initialisation des batches...</p>
+                                    `;
+                                },
+                                onBatchEnd: (batch, logs) => {
+                                    const statusElement = document.getElementById(trainingStatusId);
+                                    if (!statusElement) return;
+                                    
+                                    const totalBatches = Math.ceil(this.trainingData.samples.length / this.trainingConfig.batchSize);
+                                    const progressPercent = (batch / totalBatches) * 100;
+                                    
+                                    const progressBar = statusElement.querySelector('.progress-fill');
+                                    if (progressBar) {
+                                        progressBar.style.width = `${progressPercent}%`;
+                                    }
+                                    
+                                    const statusText = statusElement.querySelector('p:last-child');
+                                    if (statusText) {
+                                        statusText.textContent = `Batch ${batch + 1}/${totalBatches} - Perte: ${logs.loss.toFixed(4)} - Précision: ${(logs.acc * 100).toFixed(2)}%`;
+                                    }
+                                },
+                                onEpochEnd: (epoch, logs) => {
+                                    const statusElement = document.getElementById(trainingStatusId);
+                                    if (!statusElement) return;
+                                    
+                                    statusElement.innerHTML = `
+                                        <p>✅ Époque ${epoch + 1}/${this.trainingConfig.epochs} terminée</p>
+                                        <p>Perte finale: ${logs.loss.toFixed(4)} - Précision: ${(logs.acc * 100).toFixed(2)}%</p>
+                                    `;
+                                }
+                            }
+                        );
+                        
+                        this.addBotMessage(`🎉 Entraînement terminé avec succès !
+
+Le modèle est maintenant prêt à générer du texte. Essayez par exemple:
+
+"Générer un texte qui commence par: Le monde"`);
+                        
+                    } catch (error) {
+                        console.error('Training error:', error);
+                        this.addBotMessage(`⚠️ Erreur lors de l'entraînement: ${error.message}`);
+                    }
+                    
+                } catch (error) {
+                    console.error('Error preparing data:', error);
+                    this.addBotMessage(`⚠️ Erreur lors de la préparation des données: ${error.message}`);
+                }
+            }
+            
+            // Handle text generation request
+            async handleGeneration(command) {
+                // Check if model exists
+                if (!this.model) {
+                    this.addBotMessage(`⚠️ Aucun modèle n'a été entraîné. Veuillez d'abord fournir un texte pour entraîner un modèle.`);
+                    return;
+                }
+                
+                // Extract generation parameters
+                let prompt = '';
+                let maxTokens = 50;
+                let temperature = 0.8;
+                
+                // Extract prompt text
+                const promptMatch = command.match(/(?:commence par|à partir de|qui commence par|partir de|débute par|débute avec|commence avec|avec): (.+)$/i);
+                if (promptMatch && promptMatch[1]) {
+                    prompt = promptMatch[1];
+                } else {
+                    // Try to find the last segment after colon
+                    const colonParts = command.split(':');
+                    if (colonParts.length > 1) {
+                        prompt = colonParts[colonParts.length - 1].trim();
+                    }
+                }
+                
+                if (!prompt) {
+                    this.addBotMessage(`📝 Pour générer du texte, j'ai besoin d'un texte d'amorce. Par exemple:
+                    
+"Générer un texte qui commence par: Il était une fois"`);
+                    return;
+                }
+                
+                // Extract token count
+                const tokensMatch = command.match(/(\d+) tokens/i);
+                if (tokensMatch && tokensMatch[1]) {
+                    maxTokens = parseInt(tokensMatch[1]);
+                }
+                
+                // Extract temperature
+                const tempMatch = command.match(/température (?:de )?(\d+\.?\d*)/i);
+                if (tempMatch && tempMatch[1]) {
+                    temperature = parseFloat(tempMatch[1]);
+                }
+                
+                // Generate text
+                this.addBotMessage(`⏳ Génération de texte en cours...
+                
+📝 Texte d'amorce: "${prompt}"
+🎚️ Paramètres: ${maxTokens} tokens, température ${temperature}`);
+                
+                try {
+                    const generation = await this.model.generateText(
+                        prompt, 
+                        this.tokenizer, 
+                        maxTokens, 
+                        temperature
+                    );
+                    
+                    this.addBotMessage(`✅ Texte généré:
+                    
+"${prompt}${generation.text}"`);
+                    
+                } catch (error) {
+                    console.error('Text generation error:', error);
+                    this.addBotMessage(`⚠️ Erreur lors de la génération de texte: ${error.message}`);
+                }
+            }
+            
+            // Add a user message
+            addUserMessage(text) {
+                const messageElement = document.createElement('div');
+                messageElement.className = 'chat-message user-message';
+                messageElement.innerHTML = this.formatMessage(text);
+                
+                this.chatContainer.appendChild(messageElement);
+                this.scrollToBottom();
+            }
+            
+            // Add a bot message
+            addBotMessage(text) {
+                const messageElement = document.createElement('div');
+                messageElement.className = 'chat-message bot-message';
+                messageElement.innerHTML = this.formatMessage(text);
+                
+                this.chatContainer.appendChild(messageElement);
+                this.scrollToBottom();
+            }
+            
+            // Format message with simple Markdown
+            formatMessage(text) {
+                // Preserve line breaks
+                let formattedText = text.replace(/\n/g, '<br>');
+                
+                // Format code blocks
+                formattedText = formattedText.replace(/```([^`]+)```/g, '<div class="code-block">$1</div>');
+                
+                // Format inline code
+                formattedText = formattedText.replace(/`([^`]+)`/g, '<code>$1</code>');
+                
+                // Format bold
+                formattedText = formattedText.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+                
+                // Format italic
+                formattedText = formattedText.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+                
+                return formattedText;
+            }
+            
+            // Scroll chat to bottom
+            scrollToBottom() {
+                this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
+            }
+        }
+
+        // Initialize chatbot when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            new ChatBot();
+        });
+    </script>
+</body>
+</html>
